@@ -1,3 +1,4 @@
+const path = require('path')
 console.log(require('dotenv').config({ path: path.resolve(__dirname, '../.env') }))
 
 const TeleBot = require('telebot');
