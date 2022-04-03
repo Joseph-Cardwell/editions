@@ -1,5 +1,5 @@
 const path = require('path')
-console.log(require('dotenv').config({ path: path.resolve(__dirname, '../.env') }))
+console.log(require('dotenv').config({ path: path.join(__dirname,'.env') }))
 
 const TeleBot = require('telebot');
 const ethers = require("ethers");
