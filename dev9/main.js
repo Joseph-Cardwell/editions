@@ -1,4 +1,4 @@
-console.log(require('dotenv').config({ path: '.env' }))
+console.log(require('dotenv').config({ path: '//.env' }))
 
 const TeleBot = require('telebot');
 const ethers = require("ethers");
@@ -72,7 +72,7 @@ const getDate=()=>{
 }
 
 const getMessageFromTx = (tx) => {
-    let output = ``+
+    let output =
         `Someone new just bought ${tokenLabel} :
         💙💙💙💙💙💙💙💙💙💙 
         ${tx.datetime} (UTC)
@@ -160,7 +160,7 @@ const listen = async()=>{
             ||
             (tokenPairIndex==='1' && args[2].toString()==='0')
         ){
-            let tx,bnbIn,tokenOut
+            let bnbIn,tokenOut
             let transaction = {}
 
             transaction.bnbPrice = await getBnbPrice();
