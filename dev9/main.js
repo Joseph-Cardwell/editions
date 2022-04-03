@@ -1,4 +1,4 @@
-console.log(require('dotenv').config({ path: './.env' }))
+console.log(require('dotenv').config({ path: '.env' }))
 
 const TeleBot = require('telebot');
 const ethers = require("ethers");
