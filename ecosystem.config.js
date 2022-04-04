@@ -101,6 +101,18 @@ module.exports = {
             cwd:'/home/sokuswap/editions/treat',
             node_args: '-r dotenv/config main.js dotenv_config_path=/home/sokuswap/editions/treat/.env dotenv_config_debug=true'
         },
+        {
+            name:"soku",
+            script: "main.js",
+            cwd:'/home/sokuswap/editions/soku',
+            node_args: '-r dotenv/config main.js dotenv_config_path=/home/sokuswap/editions/soku/.env dotenv_config_debug=true'
+        },
+        {
+            name:"suteku",
+            script: "main.js",
+            cwd:'/home/sokuswap/editions/suteku',
+            node_args: '-r dotenv/config main.js dotenv_config_path=/home/sokuswap/editions/suteku/.env dotenv_config_debug=true'
+        },
 
     ]
 }
