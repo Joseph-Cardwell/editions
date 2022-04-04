@@ -14,6 +14,7 @@ const pairABI = '[{"inputs":[],"stateMutability":"nonpayable","type":"constructo
 
 const pairWBNBContractAddress = process.env.TOKEN_PAIR_WBNB_ADDRESS
 const pairWBNBContract = new ethers.Contract(pairWBNBContractAddress,pairABI,httpProvider)
+const tokenPairWBNBIndex = process.env.TOKEN_PAIR_WBNB_INDEX
 
 const pairBUSDContractAddress = process.env.TOKEN_PAIR_BUSD_ADDRESS
 const pairBUSDContract = new ethers.Contract(pairBUSDContractAddress,pairABI,httpProvider)
@@ -21,10 +22,12 @@ const tokenPairBUSDIndex = process.env.TOKEN_PAIR_BUSD_INDEX
 
 const busdWbnbPairAddres = process.env.BUSD_WBNB_PAIR
 const busdWbnbPairContract = new ethers.Contract(busdWbnbPairAddres,pairABI,httpProvider)
-const tokenPairWBNBIndex = process.env.TOKEN_PAIR_WBNB_INDEX
 
-const tokenContractAddress = process.env.TOKEN_ADDRESS
-const tokenContract = new ethers.Contract(tokenContractAddress,erc20ABI,httpProvider)
+const tokenTargetWbnbBuyContractAddress = process.env.TOKEN_ADDRESS_TARGET_WBNB_BUY
+const tokenTargetWbnbBuyContract = new ethers.Contract(tokenTargetWbnbBuyContractAddress,erc20ABI,httpProvider)
+
+const tokenTargetBusdBuyContractAddress = process.env.TOKEN_ADDRESS_TARGET_WBNB_BUY
+const tokenTargetBusdBuyContract = new ethers.Contract(tokenTargetBusdBuyContractAddress,erc20ABI,httpProvider)
 
 const tokenLabel = process.env.TOKEN_LABEL
 const bigBuyWBNBThreshold = process.env.TOKEN_BIGBUY_WBNB_THRESHOLD
@@ -35,6 +38,7 @@ const txBaseURL='https://bscscan.com/tx/'
 const buyBaseURL='https://app.sokuswap.finance/bsc/#/swap?inputCurrency=0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c&outputCurrency='
 
 const defaultChatId = process.env.DEFAULT_CHAT_ID
+
 const bigBuyImages =[
     process.env.BIGBUY_IMAGE1,
     process.env.BIGBUY_IMAGE2,
@@ -116,7 +120,7 @@ const sendMessage=async (transaction) => {
                 },
                 {
                     text: "BUY",
-                    url: buyBaseURL+tokenContractAddress
+                    url: buyBaseURL+transaction.tokenAddress
                 }
             ]]
         } ;
@@ -165,10 +169,11 @@ const formatNum = (str) => {
 
 const listen = async()=>{
     listening = true
-    tokenDecimals = await tokenContract.decimals()
-    tokenTotalSupply = (await tokenContract.totalSupply())/(10**tokenDecimals)
+
 
     pairWBNBContract.on('Swap',async (...args) => {
+        tokenDecimals = await tokenTargetWbnbBuyContract.decimals()
+        tokenTotalSupply = (await tokenTargetWbnbBuyContract.totalSupply())/(10**tokenDecimals)
         if(
             (tokenPairWBNBIndex==='0' && args[1].toString()==='0')
             ||
@@ -183,7 +188,7 @@ const listen = async()=>{
 
             transaction.buyer = args[5]
 
-            if (tokenPairIndex === '0') {
+            if (tokenPairWBNBIndex === '0') {
                 bnbIn = args[2].toString()
                 tokenOut = args[3].toString()
             } else {
@@ -191,10 +196,12 @@ const listen = async()=>{
                 tokenOut = args[4].toString()
             }
 
+            const balance = await tokenTargetWbnbBuyContract.balanceOf(transaction.buyer)
+            transaction.balance = balance/(10**tokenDecimals)
+
             transaction.tokenOut = tokenOut/(10**tokenDecimals)
             transaction.bnbIn = bnbIn/(10**18)
             transaction.datetime = getDate()
-            transaction.balance = await getBalance(transaction.buyer)
             transaction.newBuyer = transaction.balance <= transaction.tokenOut
             transaction.tokenPerBNB = bnbIn/tokenOut
             transaction.tokenPrice = ( transaction.tokenPerBNB * transaction.bnbPrice ).toFixed(8);
@@ -203,6 +210,7 @@ const listen = async()=>{
 
             let animation= getAnimation(transaction.bnbIn>bigBuyWBNBThreshold)
 
+            transaction.tokenAddress = tokenTargetWbnbBuyContractAddress
             await sendMessage(transaction).then(()=>sendAnimation(animation))
         }
     })
@@ -214,6 +222,9 @@ const listen = async()=>{
             ||
             (tokenPairBUSDIndex==='1' && args[2].toString()==='0')
         ){
+            tokenDecimals = await tokenTargetBusdBuyContract.decimals()
+            tokenTotalSupply = (await tokenTargetBusdBuyContract.totalSupply())/(10**tokenDecimals)
+
             let busdIn,tokenOut, transaction = {}
 
             transaction.txHash = args[6].transactionHash
@@ -223,10 +234,13 @@ const listen = async()=>{
             busdIn = parseInt(args[1].toString())
             tokenOut = parseInt(args[4].toString())
 
+
+            const balance = await tokenTargetBusdBuyContract.balanceOf(transaction.buyer)
+            transaction.balance = balance/(10**tokenDecimals)
+
             transaction.busdIn = busdIn/(10**18)
             transaction.tokenOut = tokenOut/(10**tokenDecimals)
             transaction.datetime = getDate()
-            transaction.balance = await getBalance(transaction.buyer)
             transaction.newBuyer = transaction.balance <= transaction.tokenOut
             transaction.tokenPrice = (transaction.busdIn/transaction.tokenOut).toFixed(8);
             transaction.valueUSD = transaction.busdIn
@@ -234,13 +248,15 @@ const listen = async()=>{
 
             let animation= getAnimation(transaction.busdIn>bigBuyBUSDThreshold)
 
+            transaction.tokenAddress = tokenTargetBusdBuyContractAddress
             await sendMessage(transaction).then(()=>sendAnimation(animation))
         }
     })
 }
 
 const mute = ()=>{
-    pairContract.off('Swap',()=>{})
+    busdWbnbPairContract.off('Swap',()=>{})
+    pairBUSDContract.off('Swap',()=>{})
     listening=false
 }
 

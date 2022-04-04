@@ -14,6 +14,7 @@ const pairABI = '[{"inputs":[],"stateMutability":"nonpayable","type":"constructo
 
 const pairWBNBContractAddress = process.env.TOKEN_PAIR_WBNB_ADDRESS
 const pairWBNBContract = new ethers.Contract(pairWBNBContractAddress,pairABI,httpProvider)
+const tokenPairWBNBIndex = process.env.TOKEN_PAIR_WBNB_INDEX
 
 const pairBUSDContractAddress = process.env.TOKEN_PAIR_BUSD_ADDRESS
 const pairBUSDContract = new ethers.Contract(pairBUSDContractAddress,pairABI,httpProvider)
@@ -21,7 +22,6 @@ const tokenPairBUSDIndex = process.env.TOKEN_PAIR_BUSD_INDEX
 
 const busdWbnbPairAddres = process.env.BUSD_WBNB_PAIR
 const busdWbnbPairContract = new ethers.Contract(busdWbnbPairAddres,pairABI,httpProvider)
-const tokenPairWBNBIndex = process.env.TOKEN_PAIR_WBNB_INDEX
 
 const tokenContractAddress = process.env.TOKEN_ADDRESS
 const tokenContract = new ethers.Contract(tokenContractAddress,erc20ABI,httpProvider)
@@ -35,6 +35,7 @@ const txBaseURL='https://bscscan.com/tx/'
 const buyBaseURL='https://app.sokuswap.finance/bsc/#/swap?inputCurrency=0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c&outputCurrency='
 
 const defaultChatId = process.env.DEFAULT_CHAT_ID
+
 const bigBuyImages =[
     process.env.BIGBUY_IMAGE1,
     process.env.BIGBUY_IMAGE2,
@@ -183,7 +184,7 @@ const listen = async()=>{
 
             transaction.buyer = args[5]
 
-            if (tokenPairIndex === '0') {
+            if (tokenPairWBNBIndex === '0') {
                 bnbIn = args[2].toString()
                 tokenOut = args[3].toString()
             } else {
@@ -240,7 +241,8 @@ const listen = async()=>{
 }
 
 const mute = ()=>{
-    pairContract.off('Swap',()=>{})
+    busdWbnbPairContract.off('Swap',()=>{})
+    pairBUSDContract.off('Swap',()=>{})
     listening=false
 }
 
