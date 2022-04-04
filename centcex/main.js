@@ -1,11 +1,11 @@
-require('dotenv').config();
+require('dotenv').config()
 
 const TeleBot = require('telebot');
 const ethers = require("ethers");
 
 let slimBotStartMessage
 
-const httpProvider = new ethers.providers.JsonRpcProvider('https://data-seed-prebsc-1-s1.binance.org:8545/')
+const httpProvider = new ethers.providers.JsonRpcProvider('https://bsc-dataseed.binance.org/')
 
 const slimBot = new TeleBot(process.env.TELEGRAM_TOKEN)
 
@@ -53,6 +53,8 @@ let lastThreeRegBuyImages=[];
 let tokenDecimals
 let tokenTotalSupply
 
+let listening
+
 const getBnbPrice = async ()=>{
     let reserves = await busdWbnbPairContract.getReserves()
     return parseInt(reserves[1])/parseInt(reserves[0])
@@ -72,7 +74,7 @@ const getDate=()=>{
 }
 
 const getMessageFromTx = (tx) => {
-    let output = ``+
+    let output =
         `Someone new just bought ${tokenLabel} :
         💙💙💙💙💙💙💙💙💙💙 
         ${tx.datetime} (UTC)
@@ -150,7 +152,7 @@ const formatNum = (str) => {
 }
 
 const listen = async()=>{
-
+    listening = true
     tokenDecimals = await tokenContract.decimals()
     tokenTotalSupply = (await tokenContract.totalSupply())/(10**tokenDecimals)
 
@@ -160,7 +162,7 @@ const listen = async()=>{
             ||
             (tokenPairIndex==='1' && args[2].toString()==='0')
         ){
-            let tx,bnbIn,tokenOut
+            let bnbIn,tokenOut
             let transaction = {}
 
             transaction.bnbPrice = await getBnbPrice();
@@ -196,6 +198,7 @@ const listen = async()=>{
 
 const mute = ()=>{
     pairContract.off('Swap',()=>{})
+    listening=false
 }
 
 slimBot.on('/start', async (msg) => {
@@ -203,7 +206,9 @@ slimBot.on('/start', async (msg) => {
     if(user.status === "creator" || user.status === "admin"){
         slimBotStartMessage = msg
         msg.reply.text( 'updating has started\n' + '/stop to stop receiving updates\n' )
-        await listen()
+        if(!listening){
+            await listen()
+        }
     }
 })
 
@@ -214,4 +219,13 @@ slimBot.on('/stop',  (msg) => {
     }
 })
 
-slimBot.start()
+const start = async ()=>{
+    slimBotStartMessage = {chat:{id:-741312573}}
+    await listen()
+    slimBot.start()
+}
+
+start()
+
+
+

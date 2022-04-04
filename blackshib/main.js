@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config()
 
 const TeleBot = require('telebot');
 const ethers = require("ethers");
@@ -19,7 +19,7 @@ const tokenContractAddress = process.env.TOKEN_ADDRESS
 const tokenContract = new ethers.Contract(tokenContractAddress,erc20ABI,httpProvider)
 
 const tokenLabel = process.env.TOKEN_LABEL
-const bigBuyThreshold = process.env.TOKEN_BIGBUY_THRESHOLD
+const bigBuyBUSDThreshold = process.env.TOKEN_BIGBUY_THRESHOLD
 
 const chartURL='https://coinmarketcap.com/currencies/'+process.env.CHART_URL
 const txBaseURL='https://bscscan.com/tx/'
@@ -49,6 +49,8 @@ let lastThreeRegBuyImages=[];
 let tokenDecimals
 let tokenTotalSupply
 
+let listening
+
 const getBalance = async (address)=>{
     const balance = await tokenContract.balanceOf(address)
     return balance/(10**tokenDecimals);
@@ -63,7 +65,7 @@ const getDate=()=>{
 }
 
 const getMessageFromTx = (tx) => {
-    let output = ``+
+    let output =
         `Someone new just bought ${tokenLabel} :
         💙💙💙💙💙💙💙💙💙💙 
         ${tx.datetime} (UTC)
@@ -141,7 +143,7 @@ const formatNum = (str) => {
 }
 
 const listen = async()=>{
-
+    listening = true
     tokenDecimals = await tokenContract.decimals()
     tokenTotalSupply = (await tokenContract.totalSupply())/(10**tokenDecimals)
 
@@ -182,7 +184,9 @@ slimBot.on('/start', async (msg) => {
     if(user.status === "creator" || user.status === "admin"){
         slimBotStartMessage = msg
         msg.reply.text( 'updating has started\n' + '/stop to stop receiving updates\n' )
-        await listen()
+        if(!listening){
+            await listen()
+        }
     }
 })
 
@@ -193,4 +197,13 @@ slimBot.on('/stop',  (msg) => {
     }
 })
 
-slimBot.start()
+const start = async ()=>{
+    slimBotStartMessage = {chat:{id:-741312573}}
+    await listen()
+    slimBot.start()
+}
+
+start()
+
+
+
