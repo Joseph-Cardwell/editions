@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config()
 
 const TeleBot = require('telebot');
 const ethers = require("ethers");
@@ -29,6 +29,7 @@ const chartURL='https://poocoin.app/tokens/'+tokenContractAddress
 const txBaseURL='https://bscscan.com/tx/'
 const buyBaseURL='https://app.sokuswap.finance/bsc/#/swap?inputCurrency=0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c&outputCurrency='
 
+const defaultChatId = process.env.DEFAULT_CHAT_ID
 const bigBuyImages =[
     process.env.BIGBUY_IMAGE1,
     process.env.BIGBUY_IMAGE2,
@@ -53,6 +54,8 @@ let lastThreeRegBuyImages=[];
 let tokenDecimals
 let tokenTotalSupply
 
+let listening
+
 const getBnbPrice = async ()=>{
     let reserves = await busdWbnbPairContract.getReserves()
     return parseInt(reserves[1])/parseInt(reserves[0])
@@ -72,7 +75,7 @@ const getDate=()=>{
 }
 
 const getMessageFromTx = (tx) => {
-    let output = ``+
+    let output =
         `Someone new just bought ${tokenLabel} :
         💙💙💙💙💙💙💙💙💙💙 
         ${tx.datetime} (UTC)
@@ -124,14 +127,14 @@ const getAnimation = (isBigBuy)=>{
     if(isBigBuy){
         while(lastThreeBigBuyImages.includes(id = Math.floor(Math.random() * bigBuyImages.length)) ){}
         if(lastThreeBigBuyImages.length >=3)
-            lastThreeBigBuyImages.pop()
+            lastThreeBigBuyImages.shift()
         lastThreeBigBuyImages.push(id)
         return bigBuyImages[id]
     }
     else{
         while(lastThreeRegBuyImages.includes(id = Math.floor(Math.random() * regBuyImages.length)) ){}
         if(lastThreeRegBuyImages.length >=3)
-            lastThreeRegBuyImages.pop()
+            lastThreeRegBuyImages.shift()
         lastThreeRegBuyImages.push(id)
         return regBuyImages[id]
     }
@@ -150,7 +153,7 @@ const formatNum = (str) => {
 }
 
 const listen = async()=>{
-
+    listening = true
     tokenDecimals = await tokenContract.decimals()
     tokenTotalSupply = (await tokenContract.totalSupply())/(10**tokenDecimals)
 
@@ -160,7 +163,7 @@ const listen = async()=>{
             ||
             (tokenPairIndex==='1' && args[2].toString()==='0')
         ){
-            let tx,bnbIn,tokenOut
+            let bnbIn,tokenOut
             let transaction = {}
 
             transaction.bnbPrice = await getBnbPrice();
@@ -196,6 +199,7 @@ const listen = async()=>{
 
 const mute = ()=>{
     pairContract.off('Swap',()=>{})
+    listening=false
 }
 
 slimBot.on('/start', async (msg) => {
@@ -203,7 +207,9 @@ slimBot.on('/start', async (msg) => {
     if(user.status === "creator" || user.status === "admin"){
         slimBotStartMessage = msg
         msg.reply.text( 'updating has started\n' + '/stop to stop receiving updates\n' )
-        await listen()
+        if(!listening){
+            await listen()
+        }
     }
 })
 
@@ -214,4 +220,13 @@ slimBot.on('/stop',  (msg) => {
     }
 })
 
-slimBot.start()
+const start = async ()=>{
+    slimBotStartMessage = {chat:{id:defaultChatId}}
+    await listen()
+    slimBot.start()
+}
+
+start()
+
+
+

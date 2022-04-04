@@ -127,14 +127,14 @@ const getAnimation = (isBigBuy)=>{
     if(isBigBuy){
         while(lastThreeBigBuyImages.includes(id = Math.floor(Math.random() * bigBuyImages.length)) ){}
         if(lastThreeBigBuyImages.length >=3)
-            lastThreeBigBuyImages.pop()
+            lastThreeBigBuyImages.shift()
         lastThreeBigBuyImages.push(id)
         return bigBuyImages[id]
     }
     else{
         while(lastThreeRegBuyImages.includes(id = Math.floor(Math.random() * regBuyImages.length)) ){}
         if(lastThreeRegBuyImages.length >=3)
-            lastThreeRegBuyImages.pop()
+            lastThreeRegBuyImages.shift()
         lastThreeRegBuyImages.push(id)
         return regBuyImages[id]
     }

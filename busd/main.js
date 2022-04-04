@@ -25,6 +25,7 @@ const chartURL='https://coinmarketcap.com/currencies/'+process.env.CHART_URL
 const txBaseURL='https://bscscan.com/tx/'
 const buyBaseURL='https://app.sokuswap.finance/bsc/#/swap?inputCurrency=0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c&outputCurrency='
 
+const defaultChatId = process.env.DEFAULT_CHAT_ID
 const bigBuyImages =[
     process.env.BIGBUY_IMAGE1,
     process.env.BIGBUY_IMAGE2,
@@ -117,14 +118,14 @@ const getAnimation = (isBigBuy)=>{
     if(isBigBuy){
         while(lastThreeBigBuyImages.includes(id = Math.floor(Math.random() * bigBuyImages.length)) ){}
         if(lastThreeBigBuyImages.length >=3)
-            lastThreeBigBuyImages.pop()
+            lastThreeBigBuyImages.shift()
         lastThreeBigBuyImages.push(id)
         return bigBuyImages[id]
     }
     else{
         while(lastThreeRegBuyImages.includes(id = Math.floor(Math.random() * regBuyImages.length)) ){}
         if(lastThreeRegBuyImages.length >=3)
-            lastThreeRegBuyImages.pop()
+            lastThreeRegBuyImages.shift()
         lastThreeRegBuyImages.push(id)
         return regBuyImages[id]
     }
@@ -149,7 +150,7 @@ const listen = async()=>{
 
     pairContract.on('Swap',async (...args) => {
         if(args[2].toString()==='0'){
-            let tx,busdIn,tokenOut
+            let busdIn,tokenOut
             let transaction = {}
 
             transaction.txHash = args[6].transactionHash
@@ -177,6 +178,7 @@ const listen = async()=>{
 
 const mute = ()=>{
     pairContract.off('Swap',()=>{})
+    listening=false
 }
 
 slimBot.on('/start', async (msg) => {
@@ -198,7 +200,7 @@ slimBot.on('/stop',  (msg) => {
 })
 
 const start = async ()=>{
-    slimBotStartMessage = {chat:{id:-741312573}}
+    slimBotStartMessage = {chat:{id:defaultChatId}}
     await listen()
     slimBot.start()
 }
