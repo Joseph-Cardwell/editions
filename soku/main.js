@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config()
 
 const TeleBot = require('telebot');
 const ethers = require("ethers");
@@ -34,6 +34,7 @@ const chartURL='https://coinmarketcap.com/currencies/'+process.env.CHART_URL
 const txBaseURL='https://bscscan.com/tx/'
 const buyBaseURL='https://app.sokuswap.finance/bsc/#/swap?inputCurrency=0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c&outputCurrency='
 
+const defaultChatId = process.env.DEFAULT_CHAT_ID
 const bigBuyImages =[
     process.env.BIGBUY_IMAGE1,
     process.env.BIGBUY_IMAGE2,
@@ -57,6 +58,8 @@ let lastThreeRegBuyImages=[];
 
 let tokenDecimals
 let tokenTotalSupply
+
+let listening
 
 const getBnbPrice = async ()=>{
     let reserves = await busdWbnbPairContract.getReserves()
@@ -161,7 +164,7 @@ const formatNum = (str) => {
 }
 
 const listen = async()=>{
-
+    listening = true
     tokenDecimals = await tokenContract.decimals()
     tokenTotalSupply = (await tokenContract.totalSupply())/(10**tokenDecimals)
 
@@ -238,6 +241,7 @@ const listen = async()=>{
 
 const mute = ()=>{
     pairContract.off('Swap',()=>{})
+    listening=false
 }
 
 slimBot.on('/start', async (msg) => {
@@ -245,7 +249,9 @@ slimBot.on('/start', async (msg) => {
     if(user.status === "creator" || user.status === "admin"){
         slimBotStartMessage = msg
         msg.reply.text( 'updating has started\n' + '/stop to stop receiving updates\n' )
-        await listen()
+        if(!listening){
+            await listen()
+        }
     }
 })
 
@@ -256,4 +262,13 @@ slimBot.on('/stop',  (msg) => {
     }
 })
 
-slimBot.start()
+const start = async ()=>{
+    slimBotStartMessage = {chat:{id:defaultChatId}}
+    await listen()
+    slimBot.start()
+}
+
+start()
+
+
+

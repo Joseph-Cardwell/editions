@@ -79,13 +79,13 @@ const getDate=()=>{
 }
 
 const getMessageFromTx = (tx) => {
-    let spent =  tx.bnbIn != undefined
+    let spent =  tx.bnbIn !== undefined
         ?
             `${tx.bnbIn.toString()}($${formatNum(tx.valueUSD)})`
         :
             `$${formatNum(tx.valueUSD)}`
 
-    let output = '' +
+    let output =
         `Someone new just bought ${tokenLabel} :
         💙💙💙💙💙💙💙💙💙💙 
         ${tx.datetime} (UTC)
@@ -208,7 +208,7 @@ const listen = async()=>{
             ||
             (tokenPairBUSDIndex==='1' && args[2].toString()==='0')
         ){
-            let tx,busdIn,tokenOut, transaction = {}
+            let busdIn,tokenOut, transaction = {}
 
             transaction.txHash = args[6].transactionHash
 
