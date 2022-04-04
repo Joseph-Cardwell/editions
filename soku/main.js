@@ -183,7 +183,7 @@ const listen = async()=>{
 
             transaction.buyer = args[5]
 
-            if (tokenPairIndex === '0') {
+            if (tokenPairWBNBIndex === '0') {
                 bnbIn = args[2].toString()
                 tokenOut = args[3].toString()
             } else {
@@ -206,7 +206,6 @@ const listen = async()=>{
             await sendMessage(transaction).then(()=>sendAnimation(animation))
         }
     })
-
 
     pairBUSDContract.on('Swap',async (...args) => {
         if(
