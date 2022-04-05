@@ -90,16 +90,20 @@ const getMessageFromTx = (tx) => {
         :
             `$${formatNum(tx.valueUSD)}`
 
+    let showBalance = tx.balance>0;
+
     let output =
         `Someone new just bought ${tokenLabel} :
         💙💙💙💙💙💙💙💙💙💙 
         ${tx.datetime} (UTC)
         Spent: ${spent} 
-        Got:  ${tx.tokenOut} ${tokenLabel} 
-        Price: $${tx.tokenPrice}
-        MCap: $${tx.mcap}
-        ${tx.newBuyer?"~~~New Investor~~~":""}
-        New Balance:${tx.balance} ${tokenLabel}`
+        Got:  ${formatNum(tx.tokenOut)} ${tokenLabel} 
+        Price: $${formatNum(tx.tokenPrice)}
+        MCap: $${formatNum(tx.mcap)}
+        ${tx.newBuyer?"~~~New Investor~~~":""} `
+
+    if(showBalance)
+        output+=`New Balance:${formatNum(tx.balance)} ${tokenLabel}`
 
     return output
 }
@@ -164,12 +168,13 @@ const sendAnimation=async (animation)=>{
 }
 
 const formatNum = (str) => {
-    return parseFloat(str).toLocaleString();
+    return parseFloat(str).toLocaleString("en-US");
 }
 
 const listen = async()=>{
     listening = true
-
+    //tokenDecimals = await tokenContract.decimals()
+    //tokenTotalSupply = (await tokenContract.totalSupply())/(10**tokenDecimals)
 
     pairWBNBContract.on('Swap',async (...args) => {
         tokenDecimals = await tokenTargetWbnbBuyContract.decimals()
@@ -202,6 +207,7 @@ const listen = async()=>{
             transaction.tokenOut = tokenOut/(10**tokenDecimals)
             transaction.bnbIn = bnbIn/(10**18)
             transaction.datetime = getDate()
+            transaction.balance = await getBalance(transaction.buyer)
             transaction.newBuyer = transaction.balance <= transaction.tokenOut
             transaction.tokenPerBNB = bnbIn/tokenOut
             transaction.tokenPrice = ( transaction.tokenPerBNB * transaction.bnbPrice ).toFixed(8);
@@ -242,9 +248,9 @@ const listen = async()=>{
             transaction.tokenOut = tokenOut/(10**tokenDecimals)
             transaction.datetime = getDate()
             transaction.newBuyer = transaction.balance <= transaction.tokenOut
-            transaction.tokenPrice = (transaction.busdIn/transaction.tokenOut).toFixed(8);
+            transaction.tokenPrice = (transaction.busdIn/transaction.tokenOut).toFixed(8)
             transaction.valueUSD = transaction.busdIn
-            transaction.mcap = ( transaction.tokenPrice * tokenTotalSupply ).toFixed(2);
+            transaction.mcap = ( transaction.tokenPrice * tokenTotalSupply ).toFixed(2)
 
             let animation= getAnimation(transaction.busdIn>bigBuyBUSDThreshold)
 
@@ -259,6 +265,28 @@ const mute = ()=>{
     pairBUSDContract.off('Swap',()=>{})
     listening=false
 }
+
+const writeDefaultChatId = ()=>{
+
+}
+
+const readDefaultChatId = ()=>{
+
+}
+
+slimBot.on('/register',async(msg)=>{
+    let user = await slimBot.getChatMember(msg.chat.id, msg.from.id)
+    if(user.status === "creator" || user.status === "admin"){
+        slimBotStartMessage = msg
+        writeDefaultChatId()
+
+        msg.reply.text( 'registered default group and started updates\n' + '/stop to stop receiving updates\n' )
+
+        if(!listening){
+            await listen()
+        }
+    }
+})
 
 slimBot.on('/start', async (msg) => {
     let user = await slimBot.getChatMember(msg.chat.id, msg.from.id)

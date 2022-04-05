@@ -19,7 +19,7 @@ const tokenPairIndex = process.env.TOKEN_PAIR_INDEX
 const busdWbnbPairAddres = process.env.BUSD_WBNB_PAIR
 const busdWbnbPairContract = new ethers.Contract(busdWbnbPairAddres,pairABI,httpProvider)
 
-const   tokenContractAddress = process.env.TOKEN_ADDRESS
+const tokenContractAddress = process.env.TOKEN_ADDRESS
 const tokenContract = new ethers.Contract(tokenContractAddress,erc20ABI,httpProvider)
 
 const tokenLabel = process.env.TOKEN_LABEL
@@ -30,7 +30,6 @@ const txBaseURL='https://bscscan.com/tx/'
 const buyBaseURL='https://app.sokuswap.finance/bsc/#/swap?inputCurrency=0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c&outputCurrency='
 
 const defaultChatId = process.env.DEFAULT_CHAT_ID
-
 const bigBuyImages =[
     process.env.BIGBUY_IMAGE1,
     process.env.BIGBUY_IMAGE2,
@@ -76,20 +75,16 @@ const getDate=()=>{
 }
 
 const getMessageFromTx = (tx) => {
-    let showBalance = tx.balance>0;
-
     let output =
         `Someone new just bought ${tokenLabel} :
         💙💙💙💙💙💙💙💙💙💙 
         ${tx.datetime} (UTC)
-        Spent:  ${formatNum(tx.bnbIn.toString())}($${formatNum(tx.valueUSD)})
-        Got:  ${formatNum(tx.tokenOut)} ${tokenLabel} 
-        Price: $${formatNum(tx.tokenPrice)}
-        MCap: $${formatNum(tx.mcap)}
-        ${tx.newBuyer?"~~~New Investor~~~":""} `
-
-    if(showBalance)
-        output+=`New Balance:${formatNum(tx.balance)} ${tokenLabel}`
+        Spent:  ${tx.bnbIn.toString()}($${formatNum(tx.valueUSD)})
+        Got:  ${tx.tokenOut} ${tokenLabel} 
+        Price: $${tx.tokenPrice}
+        MCap: $${tx.mcap}
+        ${tx.newBuyer?"~~~New Investor~~~":""}
+        New Balance:${tx.balance} ${tokenLabel}`
 
     return output
 }
@@ -154,7 +149,7 @@ const sendAnimation=async (animation)=>{
 }
 
 const formatNum = (str) => {
-    return parseFloat(str).toLocaleString("en-US");
+    return parseFloat(str).toLocaleString();
 }
 
 const listen = async()=>{
@@ -206,28 +201,6 @@ const mute = ()=>{
     pairContract.off('Swap',()=>{})
     listening=false
 }
-
-const writeDefaultChatId = ()=>{
-
-}
-
-const readDefaultChatId = ()=>{
-
-}
-
-slimBot.on('/register',async(msg)=>{
-    let user = await slimBot.getChatMember(msg.chat.id, msg.from.id)
-    if(user.status === "creator" || user.status === "admin"){
-        slimBotStartMessage = msg
-        writeDefaultChatId()
-
-        msg.reply.text( 'registered default group and started updates\n' + '/stop to stop receiving updates\n' )
-
-        if(!listening){
-            await listen()
-        }
-    }
-})
 
 slimBot.on('/start', async (msg) => {
     let user = await slimBot.getChatMember(msg.chat.id, msg.from.id)

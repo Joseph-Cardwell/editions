@@ -92,7 +92,7 @@ const getMessageFromTx = (tx) => {
         💙💙💙💙💙💙💙💙💙💙 
         ${tx.datetime} (UTC)
         Spent: ${spent} 
-        Got:  ${tx.tokenOut} ${tokenLabel} 
+        Got:  ${formatNum(tx.tokenOut)} ${tokenLabel} 
         Price: $${formatNum(tx.tokenPrice)}
         MCap: $${formatNum(tx.mcap)}
         ${tx.newBuyer?"~~~New Investor~~~":""}
@@ -161,7 +161,7 @@ const sendAnimation=async (animation)=>{
 }
 
 const formatNum = (str) => {
-    return parseFloat(str).toLocaleString();
+    return parseFloat(str).toLocaleString("en-US");
 }
 
 const listen = async()=>{
@@ -244,6 +244,28 @@ const mute = ()=>{
     pairBUSDContract.off('Swap',()=>{})
     listening=false
 }
+
+const writeDefaultChatId = ()=>{
+
+}
+
+const readDefaultChatId = ()=>{
+
+}
+
+slimBot.on('/register',async(msg)=>{
+    let user = await slimBot.getChatMember(msg.chat.id, msg.from.id)
+    if(user.status === "creator" || user.status === "admin"){
+        slimBotStartMessage = msg
+        writeDefaultChatId()
+
+        msg.reply.text( 'registered default group and started updates\n' + '/stop to stop receiving updates\n' )
+
+        if(!listening){
+            await listen()
+        }
+    }
+})
 
 slimBot.on('/start', async (msg) => {
     let user = await slimBot.getChatMember(msg.chat.id, msg.from.id)

@@ -92,11 +92,11 @@ const getMessageFromTx = (tx) => {
         💙💙💙💙💙💙💙💙💙💙 
         ${tx.datetime} (UTC)
         Spent: ${spent} 
-        Got:  ${tx.tokenOut} ${tokenLabel} 
-        Price: $${tx.tokenPrice}
-        MCap: $${tx.mcap}
+        Got:  ${formatNum(tx.tokenOut)} ${tokenLabel} 
+        Price: $${formatNum(tx.tokenPrice)}
+        MCap: $${formatNum(tx.mcap)}
         ${tx.newBuyer?"~~~New Investor~~~":""}
-        New Balance:${tx.balance} ${tokenLabel}`
+        New Balance:${formatNum(tx.balance)} ${tokenLabel}`
 
     return output
 }
@@ -245,6 +245,17 @@ const mute = ()=>{
     pairBUSDContract.off('Swap',()=>{})
     listening=false
 }
+
+slimBot.on('/register',async(msg)=>{
+    let user = await slimBot.getChatMember(msg.chat.id, msg.from.id)
+    if(user.status === "creator" || user.status === "admin"){
+        slimBotStartMessage = msg
+        msg.reply.text( 'updating has started\n' + '/stop to stop receiving updates\n' )
+        if(!listening){
+            await listen()
+        }
+    }
+})
 
 slimBot.on('/start', async (msg) => {
     let user = await slimBot.getChatMember(msg.chat.id, msg.from.id)
