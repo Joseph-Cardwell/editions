@@ -30,6 +30,7 @@ const txBaseURL='https://bscscan.com/tx/'
 const buyBaseURL='https://app.sokuswap.finance/bsc/#/swap?inputCurrency=0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c&outputCurrency='
 
 const defaultChatId = process.env.DEFAULT_CHAT_ID
+
 const bigBuyImages =[
     process.env.BIGBUY_IMAGE1,
     process.env.BIGBUY_IMAGE2,
@@ -75,16 +76,20 @@ const getDate=()=>{
 }
 
 const getMessageFromTx = (tx) => {
+    let showBalance = tx.balance>0
+
     let output =
         `Someone new just bought ${tokenLabel} :
         💙💙💙💙💙💙💙💙💙💙 
         ${tx.datetime} (UTC)
-        Spent:  ${tx.bnbIn.toString()}($${formatNum(tx.valueUSD)})
-        Got:  ${tx.tokenOut} ${tokenLabel} 
-        Price: $${tx.tokenPrice}
-        MCap: $${tx.mcap}
-        ${tx.newBuyer?"~~~New Investor~~~":""}
-        New Balance:${tx.balance} ${tokenLabel}`
+        Spent:  ${formatNum(tx.bnbIn.toString())}($${formatNum(tx.valueUSD)})
+        Got:  ${formatNum(tx.tokenOut)} ${tokenLabel} 
+        Price: $${formatNum(tx.tokenPrice)}
+        MCap: $${formatNum(tx.mcap)}
+        ${tx.newBuyer?"~~~New Investor~~~":""} `
+
+    if(showBalance)
+        output+=`New Balance:${formatNum(tx.balance)} ${tokenLabel}`
 
     return output
 }

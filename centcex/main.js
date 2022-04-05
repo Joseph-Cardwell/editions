@@ -19,7 +19,7 @@ const tokenPairIndex = process.env.TOKEN_PAIR_INDEX
 const busdWbnbPairAddres = process.env.BUSD_WBNB_PAIR
 const busdWbnbPairContract = new ethers.Contract(busdWbnbPairAddres,pairABI,httpProvider)
 
-const   tokenContractAddress = process.env.TOKEN_ADDRESS
+const tokenContractAddress = process.env.TOKEN_ADDRESS
 const tokenContract = new ethers.Contract(tokenContractAddress,erc20ABI,httpProvider)
 
 const tokenLabel = process.env.TOKEN_LABEL
@@ -76,7 +76,7 @@ const getDate=()=>{
 }
 
 const getMessageFromTx = (tx) => {
-    let showBalance = tx.balance>0;
+    let showBalance = tx.balance>0
 
     let output =
         `Someone new just bought ${tokenLabel} :

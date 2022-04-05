@@ -76,7 +76,7 @@ const getDate=()=>{
 }
 
 const getMessageFromTx = (tx) => {
-    let showBalance = tx.balance>0;
+    let showBalance = tx.balance>0
 
     let output =
         `Someone new just bought ${tokenLabel} :
