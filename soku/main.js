@@ -93,10 +93,10 @@ const getMessageFromTx = (tx) => {
         ${tx.datetime} (UTC)
         Spent: ${spent} 
         Got:  ${tx.tokenOut} ${tokenLabel} 
-        Price: $${tx.tokenPrice}
-        MCap: $${tx.mcap}
+        Price: $${formatNum(tx.tokenPrice)}
+        MCap: $${formatNum(tx.mcap)}
         ${tx.newBuyer?"~~~New Investor~~~":""}
-        New Balance:${tx.balance} ${tokenLabel}`
+        New Balance:${formatNum(tx.balance)} ${tokenLabel}`
 
     return output
 }
@@ -185,10 +185,10 @@ const listen = async()=>{
             transaction.buyer = args[5]
 
             if (tokenPairWBNBIndex === '0') {
-                bnbIn = args[2].toString()
+                bnbIn = parseInt(args[2].toString())
                 tokenOut = args[3].toString()
             } else {
-                bnbIn = args[1].toString()
+                bnbIn = parseInt(args[1].toString())
                 tokenOut = args[4].toString()
             }
 
@@ -208,7 +208,6 @@ const listen = async()=>{
         }
     })
 
-
     pairBUSDContract.on('Swap',async (...args) => {
         if(
             (tokenPairBUSDIndex==='0' && args[1].toString()==='0')
@@ -221,8 +220,8 @@ const listen = async()=>{
 
             transaction.buyer = args[5]
 
-            busdIn = parseInt(args[1].toString())
-            tokenOut = parseInt(args[4].toString())
+            busdIn = parseInt(args[2].toString())
+            tokenOut = parseInt(args[3].toString())
 
             transaction.busdIn = busdIn/(10**18)
             transaction.tokenOut = tokenOut/(10**tokenDecimals)
