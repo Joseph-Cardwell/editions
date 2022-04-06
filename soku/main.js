@@ -206,9 +206,10 @@ const listen = async()=>{
             transaction.valueUSD = transaction.bnbPrice *transaction.bnbIn
             transaction.mcap = ( transaction.tokenPrice * tokenTotalSupply ).toFixed(2);
 
-            let animation= getAnimation(transaction.bnbIn>bigBuyWBNBThreshold)
+            //let animation= getAnimation(transaction.bnbIn>bigBuyWBNBThreshold)
 
-            await sendMessage(transaction).then(()=>sendAnimation(animation))
+            //await sendMessage(transaction).then(()=>sendAnimation(animation))
+            await sendMessage(transaction)
         }
     })
 

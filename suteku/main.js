@@ -189,10 +189,10 @@ const listen = async()=>{
             transaction.buyer = args[5]
 
             if (tokenPairWBNBIndex === '0') {
-                bnbIn = args[2].toString()
+                bnbIn = parseInt(args[2].toString())
                 tokenOut = args[3].toString()
             } else {
-                bnbIn = args[1].toString()
+                bnbIn = parseInt(args[1].toString())
                 tokenOut = args[4].toString()
             }
 
@@ -201,17 +201,16 @@ const listen = async()=>{
             transaction.datetime = getDate()
             transaction.balance = await getBalance(transaction.buyer)
             transaction.newBuyer = transaction.balance <= transaction.tokenOut
-            transaction.tokenPerBNB = bnbIn/tokenOut
-            transaction.tokenPrice = ( transaction.tokenPerBNB * transaction.bnbPrice ).toFixed(8);
             transaction.valueUSD = transaction.bnbPrice *transaction.bnbIn
+            transaction.tokenPrice = (  transaction.valueUSD / transaction.tokenOut ).toFixed(8);
             transaction.mcap = ( transaction.tokenPrice * tokenTotalSupply ).toFixed(2);
 
-            let animation= getAnimation(transaction.bnbIn>bigBuyWBNBThreshold)
+            //let animation= getAnimation(transaction.bnbIn>bigBuyWBNBThreshold)
 
-            await sendMessage(transaction).then(()=>sendAnimation(animation))
+            //await sendMessage(transaction).then(()=>sendAnimation(animation))
+            await sendMessage(transaction)
         }
     })
-
 
     pairBUSDContract.on('Swap',async (...args) => {
         if(
