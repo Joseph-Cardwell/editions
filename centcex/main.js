@@ -56,6 +56,7 @@ let tokenDecimals
 let tokenTotalSupply
 
 let listening
+//let defaultChatId
 
 const getBnbPrice = async ()=>{
     let reserves = await busdWbnbPairContract.getReserves()
@@ -75,18 +76,22 @@ const getDate=()=>{
     //  3/30/2022 8:31:42 PM (UTC)
 }
 
+const formatNum = (str) => {
+    return parseFloat(str).toLocaleString('en-US');
+}
+
 const getMessageFromTx = (tx) => {
     let showBalance = tx.balance>0
 
-    let output =
-        `Someone new just bought ${tokenLabel} :
-        💙💙💙💙💙💙💙💙💙💙 
-        ${tx.datetime} (UTC)
-        Spent:  ${formatNum(tx.bnbIn.toString())}($${formatNum(tx.valueUSD)})
-        Got:  ${formatNum(tx.tokenOut)} ${tokenLabel} 
-        Price: $${formatNum(tx.tokenPrice)}
-        MCap: $${formatNum(tx.mcap)}
-        ${tx.newBuyer?"~~~New Investor~~~":""} `
+let output =
+`Someone new just bought ${tokenLabel} :
+💙💙💙💙💙💙💙💙💙💙 
+${tx.datetime} (UTC)
+Spent:  ${formatNum(tx.bnbIn.toString())}($${formatNum(tx.valueUSD)})
+Got:  ${formatNum(tx.tokenOut)} ${tokenLabel} 
+Price: $${formatNum(tx.tokenPrice)}
+MCap: $${formatNum(tx.mcap)}
+${tx.newBuyer?"~~~New Investor~~~":""} `
 
     if(showBalance)
         output+=`New Balance:${formatNum(tx.balance)} ${tokenLabel}`
@@ -96,7 +101,7 @@ const getMessageFromTx = (tx) => {
 
 const sendMessage=async (transaction) => {
     let message=getMessageFromTx(transaction);
-
+    let animation= getAnimation(transaction.bnbIn>bigBuyThreshold)
     if(message !== ''){
         let inline_keyboard = {
             inline_keyboard: [[
@@ -115,13 +120,14 @@ const sendMessage=async (transaction) => {
             ]]
         } ;
 
-        return await slimBot.sendMessage(
-            slimBotStartMessage.chat.id,
-            message,
+        return await slimBot.sendAnimation(
+            defaultChatId,
+            animation,
             {
                 parseMode:"HTML",
                 replyMarkup: inline_keyboard,
-                webPreview: false
+                webPreview: false,
+                caption: message
             }
         ).catch(console.error);
     }
@@ -145,16 +151,15 @@ const getAnimation = (isBigBuy)=>{
     }
 }
 
-const sendAnimation=async (animation)=>{
+const sendAnimation=async (animation,message="")=>{
     return await slimBot.sendAnimation(
-        slimBotStartMessage.chat.id,
+        defaultChatId,
         animation,
-        {webPreview: false}
+        {
+            webPreview: false,
+            caption:message
+        }
     ).catch(console.error);
-}
-
-const formatNum = (str) => {
-    return parseFloat(str).toLocaleString("en-US");
 }
 
 const listen = async()=>{
@@ -195,9 +200,10 @@ const listen = async()=>{
             transaction.valueUSD = transaction.bnbPrice *transaction.bnbIn
             transaction.mcap = ( transaction.tokenPrice * tokenTotalSupply ).toFixed(2);
 
-            let animation= getAnimation(transaction.bnbIn>bigBuyThreshold)
+            //let animation= getAnimation(transaction.bnbIn>bigBuyThreshold)
 
-            await sendMessage(transaction).then(()=>sendAnimation(animation))
+            await sendMessage(transaction)
+            //await sendMessage(transaction).then(()=>sendAnimation(animation))
         }
     })
 }
@@ -206,28 +212,6 @@ const mute = ()=>{
     pairContract.off('Swap',()=>{})
     listening=false
 }
-
-const writeDefaultChatId = ()=>{
-
-}
-
-const readDefaultChatId = ()=>{
-
-}
-
-slimBot.on('/register',async(msg)=>{
-    let user = await slimBot.getChatMember(msg.chat.id, msg.from.id)
-    if(user.status === "creator" || user.status === "admin"){
-        slimBotStartMessage = msg
-        writeDefaultChatId()
-
-        msg.reply.text( 'registered default group and started updates\n' + '/stop to stop receiving updates\n' )
-
-        if(!listening){
-            await listen()
-        }
-    }
-})
 
 slimBot.on('/start', async (msg) => {
     let user = await slimBot.getChatMember(msg.chat.id, msg.from.id)
