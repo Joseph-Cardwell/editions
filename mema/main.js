@@ -56,6 +56,7 @@ let tokenDecimals
 let tokenTotalSupply
 
 let listening
+//let defaultChatId
 
 const getBnbPrice = async ()=>{
     let reserves = await busdWbnbPairContract.getReserves()
@@ -154,7 +155,7 @@ const sendAnimation=async (animation)=>{
 }
 
 const formatNum = (str) => {
-    return parseFloat(str).toLocaleString();
+    return parseFloat(str).toLocaleString("en-US");
 }
 
 const listen = async()=>{
