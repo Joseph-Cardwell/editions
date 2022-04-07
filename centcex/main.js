@@ -192,12 +192,12 @@ const listen = async()=>{
 
             transaction.tokenOut = tokenOut/(10**tokenDecimals)
             transaction.bnbIn = bnbIn/(10**18)
+            transaction.valueUSD = transaction.bnbPrice *transaction.bnbIn
             transaction.datetime = getDate()
             transaction.balance = await getBalance(transaction.buyer)
             transaction.newBuyer = transaction.balance <= transaction.tokenOut
             transaction.tokenPerBNB = bnbIn/tokenOut
-            transaction.tokenPrice = ( transaction.tokenPerBNB * transaction.bnbPrice ).toFixed(8);
-            transaction.valueUSD = transaction.bnbPrice *transaction.bnbIn
+            transaction.tokenPrice = ( transaction.valueUSD / transaction.tokenOut ).toFixed(8);
             transaction.mcap = ( transaction.tokenPrice * tokenTotalSupply ).toFixed(2);
 
             //let animation= getAnimation(transaction.bnbIn>bigBuyThreshold)
