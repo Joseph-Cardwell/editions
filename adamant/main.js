@@ -89,7 +89,7 @@ let output =
 ${tx.datetime} (UTC)
 Spent:  ${formatNum(tx.bnbIn.toString())}($${formatNum(tx.valueUSD)})
 Got:  ${formatNum(tx.tokenOut)} ${tokenLabel} 
-Price: $${formatNum(tx.tokenPrice)}
+Price: $${tx.tokenPrice}
 MCap: $${formatNum(tx.mcap)}
 ${tx.newBuyer?"~~~New Investor~~~":""} `
 
