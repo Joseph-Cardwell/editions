@@ -87,9 +87,9 @@ let output =
 `Someone new just bought ${tokenLabel} :
 💙💙💙💙💙💙💙💙💙💙 
 ${tx.datetime} (UTC)
-Spent:  ${formatNum(tx.bnbIn.toString())}($${formatNum(tx.valueUSD)})
+Spent:  ${formatNum(tx.bnbIn.toFixed(18))}($${formatNum(tx.valueUSD).toFixed(18)})
 Got:  ${formatNum(tx.tokenOut)} ${tokenLabel} 
-Price: $${formatNum(tx.tokenPrice)}
+Price: $${tx.tokenPrice.toFixed(18).toLocaleString("en-US")}
 MCap: $${formatNum(tx.mcap)}
 ${tx.newBuyer?"~~~New Investor~~~":""} `
 
