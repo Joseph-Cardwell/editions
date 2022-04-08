@@ -81,10 +81,12 @@ const getDate=()=>{
 }
 
 const formatNum = (str) => {
-    return parseFloat(str).toLocaleString();
+    return parseFloat(str).toLocaleString('en-US');
 }
 
 const getMessageFromTx = (tx) => {
+    let showBalance = tx.balance>0
+
     let spent =  tx.bnbIn !== undefined
         ?
             `${tx.bnbIn.toString()}($${formatNum(tx.valueUSD)})`
@@ -98,16 +100,20 @@ ${tx.datetime} (UTC)
 Spent: ${spent} 
 Got:  ${tx.tokenOut} ${tokenLabel} 
 Price: $${tx.tokenPrice}
-MCap: $${tx.mcap}
-${tx.newBuyer?"~~~New Investor~~~":""}
-New Balance:${tx.balance} ${tokenLabel}`
+MCap: $${tx.mcap}`
+
+    if(showBalance)
+output+=`
+${tx.newBuyer?"~~~New Investor~~~":""} 
+New Balance:${formatNum(tx.balance)} ${tokenLabel}`
+
 
     return output
 }
 
 const sendMessage=async (transaction) => {
     let message=getMessageFromTx(transaction);
-
+    let animation= getAnimation(transaction.bnbIn>bigBuyThreshold)
     if(message !== ''){
         let inline_keyboard = {
             inline_keyboard: [[
@@ -126,13 +132,14 @@ const sendMessage=async (transaction) => {
             ]]
         } ;
 
-        return await slimBot.sendMessage(
-            slimBotStartMessage.chat.id,
-            message,
+        return await slimBot.sendAnimation(
+            defaultChatId,
+            animation,
             {
                 parseMode:"HTML",
                 replyMarkup: inline_keyboard,
-                webPreview: false
+                webPreview: false,
+                caption: message
             }
         ).catch(console.error);
     }
@@ -156,11 +163,14 @@ const getAnimation = (isBigBuy)=>{
     }
 }
 
-const sendAnimation=async (animation)=>{
+const sendAnimation=async (animation,message="")=>{
     return await slimBot.sendAnimation(
-        slimBotStartMessage.chat.id,
+        defaultChatId,
         animation,
-        {webPreview: false}
+        {
+            webPreview: false,
+            caption:message
+        }
     ).catch(console.error);
 }
 
@@ -184,53 +194,27 @@ const listen = async()=>{
 
             transaction.buyer = args[5]
 
-            bnbIn = args[2].toString()
-            tokenOut = args[3].toString()
+            if (tokenPairIndex === '0') {
+                bnbIn = args[2].toString()
+                tokenOut = args[3].toString()
+            } else {
+                bnbIn = args[1].toString()
+                tokenOut = args[4].toString()
+            }
 
             transaction.tokenOut = tokenOut/(10**tokenDecimals)
             transaction.bnbIn = bnbIn/(10**18)
-            transaction.datetime = getDate()
-            transaction.balance = await getBalance(transaction.buyer)
-            transaction.newBuyer = transaction.balance <= transaction.tokenOut
-            transaction.tokenPerBNB = bnbIn/tokenOut
-            transaction.tokenPrice = ( transaction.tokenPerBNB * transaction.bnbPrice ).toFixed(8);
             transaction.valueUSD = transaction.bnbPrice *transaction.bnbIn
-            transaction.mcap = ( transaction.tokenPrice * tokenTotalSupply ).toFixed(2);
-
-            let animation= getAnimation(transaction.bnbIn>bigBuyWBNBThreshold)
-
-            await sendMessage(transaction).then(()=>sendAnimation(animation))
-        }
-    })
-
-
-    pairBUSDContract.on('Swap',async (...args) => {
-        if(
-            (tokenPairBUSDIndex==='0' && args[1].toString()==='0')
-            ||
-            (tokenPairBUSDIndex==='1' && args[2].toString()==='0')
-        ){
-            let busdIn,tokenOut, transaction = {}
-
-            transaction.txHash = args[6].transactionHash
-
-            transaction.buyer = args[5]
-
-            busdIn = parseInt(args[1].toString())
-            tokenOut = parseInt(args[4].toString())
-
-            transaction.busdIn = busdIn/(10**18)
-            transaction.tokenOut = tokenOut/(10**tokenDecimals)
             transaction.datetime = getDate()
             transaction.balance = await getBalance(transaction.buyer)
             transaction.newBuyer = transaction.balance <= transaction.tokenOut
-            transaction.tokenPrice = (transaction.busdIn/transaction.tokenOut).toFixed(8);
-            transaction.valueUSD = transaction.busdIn
+            transaction.tokenPrice = ( transaction.valueUSD / transaction.tokenOut ).toFixed(8);
             transaction.mcap = ( transaction.tokenPrice * tokenTotalSupply ).toFixed(2);
 
-            let animation= getAnimation(transaction.busdIn>bigBuyBUSDThreshold)
+            //let animation= getAnimation(transaction.bnbIn>bigBuyThreshold)
 
-            await sendMessage(transaction).then(()=>sendAnimation(animation))
+            await sendMessage(transaction)
+            //await sendMessage(transaction).then(()=>sendAnimation(animation))
         }
     })
 }

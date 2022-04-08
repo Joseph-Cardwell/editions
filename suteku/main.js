@@ -91,15 +91,18 @@ const getMessageFromTx = (tx) => {
         :
             `$${formatNum(tx.valueUSD)}`
 
-    let output =
+let output =
 `Someone new just bought ${tokenLabel} :
 💙💙💙💙💙💙💙💙💙💙 
 ${tx.datetime} (UTC)
 Spent: ${spent} 
 Got:  ${formatNum(tx.tokenOut)} ${tokenLabel} 
 Price: $${formatNum(tx.tokenPrice)}
-MCap: $${formatNum(tx.mcap)}
-${tx.newBuyer?"~~~New Investor~~~":""}
+MCap: $${formatNum(tx.mcap)}`
+
+    if(showBalance)
+output+=`
+${tx.newBuyer?"~~~New Investor~~~":""} 
 New Balance:${formatNum(tx.balance)} ${tokenLabel}`
 
     return output
@@ -192,23 +195,23 @@ const listen = async()=>{
                 bnbIn = parseInt(args[2].toString())
                 tokenOut = args[3].toString()
             } else {
-                bnbIn = parseInt(args[1].toString())
-                tokenOut = args[4].toString()
+                bnbIn =  parseInt(args[1].toString())
+                tokenOut =  parseInt(args[4].toString())
             }
 
             transaction.tokenOut = tokenOut/(10**tokenDecimals)
             transaction.bnbIn = bnbIn/(10**18)
+            transaction.valueUSD = transaction.bnbPrice *transaction.bnbIn
             transaction.datetime = getDate()
             transaction.balance = await getBalance(transaction.buyer)
             transaction.newBuyer = transaction.balance <= transaction.tokenOut
-            transaction.valueUSD = transaction.bnbPrice *transaction.bnbIn
-            transaction.tokenPrice = (  transaction.valueUSD / transaction.tokenOut ).toFixed(8);
+            transaction.tokenPrice = ( transaction.valueUSD / transaction.tokenOut ).toFixed(8);
             transaction.mcap = ( transaction.tokenPrice * tokenTotalSupply ).toFixed(2);
 
             //let animation= getAnimation(transaction.bnbIn>bigBuyWBNBThreshold)
 
-            //await sendMessage(transaction).then(()=>sendAnimation(animation))
             await sendMessage(transaction)
+            //await sendMessage(transaction).then(()=>sendAnimation(animation))
         }
     })
 

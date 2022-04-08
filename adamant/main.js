@@ -90,11 +90,12 @@ ${tx.datetime} (UTC)
 Spent:  ${formatNum(tx.bnbIn.toString())}($${formatNum(tx.valueUSD)})
 Got:  ${formatNum(tx.tokenOut)} ${tokenLabel} 
 Price: $${tx.tokenPrice}
-MCap: $${formatNum(tx.mcap)}
-${tx.newBuyer?"~~~New Investor~~~":""} `
+MCap: $${formatNum(tx.mcap)}`
 
     if(showBalance)
-        output+=`New Balance:${formatNum(tx.balance)} ${tokenLabel}`
+output+=`
+${tx.newBuyer?"~~~New Investor~~~":""} 
+New Balance:${formatNum(tx.balance)} ${tokenLabel}`
 
     return output
 }
@@ -183,11 +184,11 @@ const listen = async()=>{
             transaction.buyer = args[5]
 
             if (tokenPairIndex === '0') {
-                bnbIn = args[2].toString()
-                tokenOut = args[3].toString()
+                bnbIn =  parseInt(args[2].toString())
+                tokenOut =  parseInt(args[3].toString())
             } else {
-                bnbIn = args[1].toString()
-                tokenOut = args[4].toString()
+                bnbIn =  parseInt(args[1].toString())
+                tokenOut =  parseInt(args[4].toString())
             }
 
             transaction.tokenOut = tokenOut/(10**tokenDecimals)
@@ -217,9 +218,9 @@ slimBot.on('/start', async (msg) => {
     if(user.status === "creator" || user.status === "admin"){
         slimBotStartMessage = msg
         msg.reply.text( 'updating has started\n' + '/stop to stop receiving updates\n' )
-        if(!listening){
+
+        if(!listening)
             await listen()
-        }
     }
 })
 

@@ -2,8 +2,7 @@ require('dotenv').config()
 
 const TeleBot = require('telebot');
 const ethers = require("ethers");
-
-let slimBotStartMessage
+const fs = require("fs");
 
 const httpProvider = new ethers.providers.JsonRpcProvider('https://bsc-dataseed.binance.org/')
 
@@ -29,7 +28,8 @@ const chartURL='https://coinmarketcap.com/currencies/'+process.env.CHART_URL
 const txBaseURL='https://bscscan.com/tx/'
 const buyBaseURL='https://app.sokuswap.finance/bsc/#/swap?inputCurrency=0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c&outputCurrency='
 
-const defaultChatId = process.env.DEFAULT_CHAT_ID
+let subscribers=[]
+
 const bigBuyImages =[
     process.env.BIGBUY_IMAGE1,
     process.env.BIGBUY_IMAGE2,
@@ -55,6 +55,7 @@ let tokenDecimals
 let tokenTotalSupply
 
 let listening
+let defaultChatId
 
 const getBnbPrice = async ()=>{
     let reserves = await busdWbnbPairContract.getReserves()
@@ -161,7 +162,45 @@ const sendAnimation=async (animation,message="")=>{
     ).catch(console.error);
 }
 
+const writeDefaultChatId = ()=>{
+    const fs = require('fs');
+
+    let config = JSON.stringify({defaultChatId:defaultChatId})
+
+    console.log(config)
+
+    fs.writeFile('./config.json', config,{ flag: 'w+' }, function (err) {
+        if (err) {
+            console.log('There has been an error saving your configuration data.')
+            console.log(err.message)
+            return
+        }
+        console.log('Configuration saved successfully.')
+    });
+
+    loadDefaultChatId()
+}
+
+const loadDefaultChatId = async ()=>{
+    let fs = require('fs');
+
+    let config
+
+    defaultChatId = false
+
+    try {
+        config = JSON.parse(fs.readFileSync('./config.json',{ flag: 'r+' }).toString() )
+        defaultChatId = config.defaultChatId
+    }
+    catch (error) { }
+
+    return defaultChatId
+}
+
 const listen = async()=>{
+
+    if(!defaultChatId)return
+
     listening = true
     tokenDecimals = await tokenContract.decimals()
     tokenTotalSupply = (await tokenContract.totalSupply())/(10**tokenDecimals)
@@ -214,11 +253,15 @@ const mute = ()=>{
 slimBot.on('/start', async (msg) => {
     let user = await slimBot.getChatMember(msg.chat.id, msg.from.id)
     if(user.status === "creator" || user.status === "admin"){
-        slimBotStartMessage = msg
-        msg.reply.text( 'updating has started\n' + '/stop to stop receiving updates\n' )
-        if(!listening){
-            await listen()
+        if(!defaultChatId){
+            defaultChatId=msg.chat.id
+            writeDefaultChatId()
         }
+
+        msg.reply.text( 'updating has started\n' + '/stop to stop receiving updates\n' )
+
+        if(!listening)
+            await listen()
     }
 })
 
@@ -230,8 +273,9 @@ slimBot.on('/stop',  (msg) => {
 })
 
 const start = async ()=>{
-    slimBotStartMessage = {chat:{id:defaultChatId}}
-    await listen()
+    let loadedDefaultChatId = await loadDefaultChatId();
+    if(loadedDefaultChatId)
+        await listen()
     slimBot.start()
 }
 
