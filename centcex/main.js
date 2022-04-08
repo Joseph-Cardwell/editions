@@ -196,7 +196,6 @@ const listen = async()=>{
             transaction.datetime = getDate()
             transaction.balance = await getBalance(transaction.buyer)
             transaction.newBuyer = transaction.balance <= transaction.tokenOut
-            transaction.tokenPerBNB = bnbIn/tokenOut
             transaction.tokenPrice = ( transaction.valueUSD / transaction.tokenOut ).toFixed(8);
             transaction.mcap = ( transaction.tokenPrice * tokenTotalSupply ).toFixed(2);
 

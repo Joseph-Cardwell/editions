@@ -75,16 +75,20 @@ const getDate=()=>{
 }
 
 const getMessageFromTx = (tx) => {
-    let output =
-        `Someone new just bought ${tokenLabel} :
-        💙💙💙💙💙💙💙💙💙💙 
-        ${tx.datetime} (UTC)
-        Spent:  ${tx.bnbIn.toString()}($${formatNum(tx.valueUSD)})
-        Got:  ${tx.tokenOut} ${tokenLabel} 
-        Price: $${tx.tokenPrice}
-        MCap: $${tx.mcap}
-        ${tx.newBuyer?"~~~New Investor~~~":""}
-        New Balance:${tx.balance} ${tokenLabel}`
+    let showBalance = tx.balance>0
+
+let output =
+`Someone new just bought ${tokenLabel} :
+💙💙💙💙💙💙💙💙💙💙 
+${tx.datetime} (UTC)
+Spent:  ${formatNum(tx.bnbIn.toString())}($${formatNum(tx.valueUSD)})
+Got:  ${formatNum(tx.tokenOut)} ${tokenLabel} 
+Price: $${formatNum(tx.tokenPrice)}
+MCap: $${formatNum(tx.mcap)}
+${tx.newBuyer?"~~~New Investor~~~":""} `
+
+    if(showBalance)
+        output+=`New Balance:${formatNum(tx.balance)} ${tokenLabel}`
 
     return output
 }
@@ -149,7 +153,7 @@ const sendAnimation=async (animation)=>{
 }
 
 const formatNum = (str) => {
-    return parseFloat(str).toLocaleString();
+    return parseFloat(str).toLocaleString("en-US");
 }
 
 const listen = async()=>{

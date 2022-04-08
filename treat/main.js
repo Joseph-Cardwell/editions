@@ -80,6 +80,10 @@ const getDate=()=>{
     //  3/30/2022 8:31:42 PM (UTC)
 }
 
+const formatNum = (str) => {
+    return parseFloat(str).toLocaleString();
+}
+
 const getMessageFromTx = (tx) => {
     let spent =  tx.bnbIn !== undefined
         ?
@@ -87,16 +91,16 @@ const getMessageFromTx = (tx) => {
         :
             `$${formatNum(tx.valueUSD)}`
 
-    let output =
-        `Someone new just bought ${tokenLabel} :
-        💙💙💙💙💙💙💙💙💙💙 
-        ${tx.datetime} (UTC)
-        Spent: ${spent} 
-        Got:  ${tx.tokenOut} ${tokenLabel} 
-        Price: $${tx.tokenPrice}
-        MCap: $${tx.mcap}
-        ${tx.newBuyer?"~~~New Investor~~~":""}
-        New Balance:${tx.balance} ${tokenLabel}`
+let output =
+`Someone new just bought ${tokenLabel} :
+💙💙💙💙💙💙💙💙💙💙 
+${tx.datetime} (UTC)
+Spent: ${spent} 
+Got:  ${tx.tokenOut} ${tokenLabel} 
+Price: $${tx.tokenPrice}
+MCap: $${tx.mcap}
+${tx.newBuyer?"~~~New Investor~~~":""}
+New Balance:${tx.balance} ${tokenLabel}`
 
     return output
 }
@@ -158,10 +162,6 @@ const sendAnimation=async (animation)=>{
         animation,
         {webPreview: false}
     ).catch(console.error);
-}
-
-const formatNum = (str) => {
-    return parseFloat(str).toLocaleString();
 }
 
 const listen = async()=>{

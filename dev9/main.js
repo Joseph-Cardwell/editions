@@ -2,8 +2,7 @@ require('dotenv').config()
 
 const TeleBot = require('telebot');
 const ethers = require("ethers");
-
-let slimBotStartMessage
+const fs = require("fs");
 
 const httpProvider = new ethers.providers.JsonRpcProvider('https://data-seed-prebsc-1-s1.binance.org:8545/')
 
@@ -29,7 +28,6 @@ const chartURL='https://coinmarketcap.com/currencies/'+process.env.CHART_URL
 const txBaseURL='https://bscscan.com/tx/'
 const buyBaseURL='https://app.sokuswap.finance/bsc/#/swap?inputCurrency=0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c&outputCurrency='
 
-const defaultChatId = process.env.DEFAULT_CHAT_ID
 
 const bigBuyImages =[
     process.env.BIGBUY_IMAGE1,
@@ -56,10 +54,11 @@ let tokenDecimals
 let tokenTotalSupply
 
 let listening
+let defaultChatId
 
 const getBnbPrice = async ()=>{
     let reserves = await busdWbnbPairContract.getReserves()
-    return parseInt(reserves[1])/parseInt(reserves[0])
+    return parseInt(reserves[0])/parseInt(reserves[1])
 }
 
 const getBalance = async (address)=>{
@@ -75,18 +74,22 @@ const getDate=()=>{
     //  3/30/2022 8:31:42 PM (UTC)
 }
 
+const formatNum = (str) => {
+    return parseFloat(str).toLocaleString('en-US');
+}
+
 const getMessageFromTx = (tx) => {
     let showBalance = tx.balance>0
 
-    let output =
-        `Someone new just bought ${tokenLabel} :
-        💙💙💙💙💙💙💙💙💙💙 
-        ${tx.datetime} (UTC)
-        Spent:  ${formatNum(tx.bnbIn.toString())}($${formatNum(tx.valueUSD)})
-        Got:  ${formatNum(tx.tokenOut)} ${tokenLabel} 
-        Price: $${formatNum(tx.tokenPrice)}
-        MCap: $${formatNum(tx.mcap)}
-        ${tx.newBuyer?"~~~New Investor~~~":""} `
+let output =
+`Someone new just bought ${tokenLabel} :
+💙💙💙💙💙💙💙💙💙💙 
+${tx.datetime} (UTC)
+Spent:  ${formatNum(tx.bnbIn.toFixed(18))}($${formatNum(tx.valueUSD).toFixed(18)})
+Got:  ${formatNum(tx.tokenOut)} ${tokenLabel} 
+Price: $${tx.tokenPrice.toFixed(18).toLocaleString("en-US")}
+MCap: $${formatNum(tx.mcap)}
+${tx.newBuyer?"~~~New Investor~~~":""} `
 
     if(showBalance)
         output+=`New Balance:${formatNum(tx.balance)} ${tokenLabel}`
@@ -96,7 +99,7 @@ const getMessageFromTx = (tx) => {
 
 const sendMessage=async (transaction) => {
     let message=getMessageFromTx(transaction);
-
+    let animation= getAnimation(transaction.bnbIn>bigBuyThreshold)
     if(message !== ''){
         let inline_keyboard = {
             inline_keyboard: [[
@@ -115,13 +118,14 @@ const sendMessage=async (transaction) => {
             ]]
         } ;
 
-        return await slimBot.sendMessage(
-            slimBotStartMessage.chat.id,
-            message,
+        return await slimBot.sendAnimation(
+            defaultChatId,
+            animation,
             {
                 parseMode:"HTML",
                 replyMarkup: inline_keyboard,
-                webPreview: false
+                webPreview: false,
+                caption: message
             }
         ).catch(console.error);
     }
@@ -145,19 +149,56 @@ const getAnimation = (isBigBuy)=>{
     }
 }
 
-const sendAnimation=async (animation)=>{
+const sendAnimation=async (animation,message="")=>{
     return await slimBot.sendAnimation(
-        slimBotStartMessage.chat.id,
+        defaultChatId,
         animation,
-        {webPreview: false}
+        {
+            webPreview: false,
+            caption:message
+        }
     ).catch(console.error);
 }
 
-const formatNum = (str) => {
-    return parseFloat(str).toLocaleString("en-US");
+const writeDefaultChatId = ()=>{
+    const fs = require('fs');
+
+    let config = JSON.stringify({defaultChatId:defaultChatId})
+
+    console.log(config)
+
+    fs.writeFile('./config.json', config,{ flag: 'w+' }, function (err) {
+        if (err) {
+            console.log('There has been an error saving your configuration data.')
+            console.log(err.message)
+            return
+        }
+        console.log('Configuration saved successfully.')
+    });
+
+    loadDefaultChatId()
+}
+
+const loadDefaultChatId = async ()=>{
+    let fs = require('fs');
+
+    let config
+
+    defaultChatId = false
+
+    try {
+        config = JSON.parse(fs.readFileSync('./config.json',{ flag: 'r+' }).toString() )
+        defaultChatId = config.defaultChatId
+    }
+    catch (error) { }
+
+    return defaultChatId
 }
 
 const listen = async()=>{
+
+    if(!defaultChatId)return
+
     listening = true
     tokenDecimals = await tokenContract.decimals()
     tokenTotalSupply = (await tokenContract.totalSupply())/(10**tokenDecimals)
@@ -187,17 +228,17 @@ const listen = async()=>{
 
             transaction.tokenOut = tokenOut/(10**tokenDecimals)
             transaction.bnbIn = bnbIn/(10**18)
+            transaction.valueUSD = transaction.bnbPrice *transaction.bnbIn
             transaction.datetime = getDate()
             transaction.balance = await getBalance(transaction.buyer)
             transaction.newBuyer = transaction.balance <= transaction.tokenOut
-            transaction.tokenPerBNB = bnbIn/tokenOut
-            transaction.tokenPrice = ( transaction.tokenPerBNB * transaction.bnbPrice ).toFixed(8);
-            transaction.valueUSD = transaction.bnbPrice *transaction.bnbIn
+            transaction.tokenPrice = ( transaction.valueUSD / transaction.tokenOut ).toFixed(8);
             transaction.mcap = ( transaction.tokenPrice * tokenTotalSupply ).toFixed(2);
 
-            let animation= getAnimation(transaction.bnbIn>bigBuyThreshold)
+            //let animation= getAnimation(transaction.bnbIn>bigBuyThreshold)
 
-            await sendMessage(transaction).then(()=>sendAnimation(animation))
+            await sendMessage(transaction)
+            //await sendMessage(transaction).then(()=>sendAnimation(animation))
         }
     })
 }
@@ -207,36 +248,18 @@ const mute = ()=>{
     listening=false
 }
 
-const writeDefaultChatId = ()=>{
-
-}
-
-const readDefaultChatId = ()=>{
-
-}
-
-slimBot.on('/register',async(msg)=>{
-    let user = await slimBot.getChatMember(msg.chat.id, msg.from.id)
-    if(user.status === "creator" || user.status === "admin"){
-        slimBotStartMessage = msg
-        writeDefaultChatId()
-
-        msg.reply.text( 'registered default group and started updates\n' + '/stop to stop receiving updates\n' )
-
-        if(!listening){
-            await listen()
-        }
-    }
-})
-
 slimBot.on('/start', async (msg) => {
     let user = await slimBot.getChatMember(msg.chat.id, msg.from.id)
     if(user.status === "creator" || user.status === "admin"){
-        slimBotStartMessage = msg
-        msg.reply.text( 'updating has started\n' + '/stop to stop receiving updates\n' )
-        if(!listening){
-            await listen()
+        if(!defaultChatId){
+            defaultChatId=msg.chat.id
+            writeDefaultChatId()
         }
+
+        msg.reply.text( 'updating has started\n' + '/stop to stop receiving updates\n' )
+
+        if(!listening)
+            await listen()
     }
 })
 
@@ -248,8 +271,9 @@ slimBot.on('/stop',  (msg) => {
 })
 
 const start = async ()=>{
-    slimBotStartMessage = {chat:{id:defaultChatId}}
-    await listen()
+    let loadedDefaultChatId = await loadDefaultChatId();
+    if(loadedDefaultChatId)
+        await listen()
     slimBot.start()
 }
 
