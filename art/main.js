@@ -2,8 +2,7 @@ require('dotenv').config()
 
 const TeleBot = require('telebot');
 const ethers = require("ethers");
-
-let slimBotStartMessage
+const fs = require("fs");
 
 const httpProvider = new ethers.providers.JsonRpcProvider('https://bsc-dataseed.binance.org/')
 
@@ -29,7 +28,7 @@ const chartURL='https://coinmarketcap.com/currencies/'+process.env.CHART_URL
 const txBaseURL='https://bscscan.com/tx/'
 const buyBaseURL='https://app.sokuswap.finance/bsc/#/swap?inputCurrency=0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c&outputCurrency='
 
-const defaultChatId = process.env.DEFAULT_CHAT_ID
+let subscribers=[]
 
 const bigBuyImages =[
     process.env.BIGBUY_IMAGE1,
@@ -56,6 +55,8 @@ let tokenDecimals
 let tokenTotalSupply
 
 let listening
+let config
+let configLoaded=false
 
 const getBnbPrice = async ()=>{
     let reserves = await busdWbnbPairContract.getReserves()
@@ -80,9 +81,10 @@ const formatNum = (str) => {
 }
 
 const getMessageFromTx = (tx) => {
+
     let showBalance = tx.balance>0
 
-let output =
+    let output =
 `Someone new just bought ${tokenLabel} :
 💙💙💙💙💙💙💙💙💙💙 
 ${tx.datetime} (UTC)
@@ -99,10 +101,20 @@ New Balance:${formatNum(tx.balance)} ${tokenLabel}`
     return output
 }
 
+const getSubscribers = async( )=>{
+    let config = await loadConfig()
+    let subscribers = config ? config.subscribers : []
+    return subscribers
+}
+
 const sendMessage=async (transaction) => {
+
+    let responses=[]
     let message=getMessageFromTx(transaction);
-    let animation= getAnimation(transaction.bnbIn>bigBuyThreshold)
+    let animation= getAnimation(transaction.bigBuyer)
+    let subscribers = await getSubscribers()
     if(message !== ''){
+
         let inline_keyboard = {
             inline_keyboard: [[
                 {
@@ -118,18 +130,22 @@ const sendMessage=async (transaction) => {
                     url: buyBaseURL+tokenContractAddress
                 }
             ]]
-        } ;
+        }
 
-        return await slimBot.sendAnimation(
-            defaultChatId,
-            animation,
-            {
-                parseMode:"HTML",
-                replyMarkup: inline_keyboard,
-                webPreview: false,
-                caption: message
-            }
-        ).catch(console.error);
+        for(let subscriber of subscribers){
+            let response =  await slimBot.sendAnimation(
+                subscriber,
+                animation,
+                {
+                    parseMode:"HTML",
+                    replyMarkup: inline_keyboard,
+                    webPreview: false,
+                    caption: message
+                }
+            ).catch(console.error)
+
+            responses.push(response)
+        }
     }
 }
 
@@ -151,58 +167,111 @@ const getAnimation = (isBigBuy)=>{
     }
 }
 
-const sendAnimation=async (animation,message="")=>{
-    return await slimBot.sendAnimation(
-        defaultChatId,
-        animation,
-        {
-            webPreview: false,
-            caption:message
+const loadConfig = async (forceReload = false)=>{
+    if(!forceReload && configLoaded)
+        return config
+
+    let fs = require('fs');
+
+    try {
+        config = JSON.parse(fs.readFileSync('./config.json',{ flag: 'r+' }).toString() )
+        configLoaded = true
+    }
+    catch (error) {
+        console.log(error)
+    }
+
+    return config
+}
+
+const writeConfig = async ()=>{
+    const fs = require('fs');
+    let configString = JSON.stringify(config)
+
+    fs.writeFile('./config.json', configString,{ flag: 'w+' }, function (err) {
+        if (err) {
+            console.log('There has been an error saving your configuration data.')
+            console.log(err.message)
+            return
         }
-    ).catch(console.error);
+        console.log('Configuration saved successfully.')
+    })
+
+    return
+}
+
+const loadSubscriptionsWithUpdate = async(newSubscriberChatId)=>{
+    let config = await loadConfig()
+    subscribers = config ? config.subscribers?? [] : []
+
+    let wroteNewSubscriber=false
+
+    if(!subscribers.includes(newSubscriberChatId)){
+        subscribers.push(newSubscriberChatId)
+        config.subscribers = subscribers
+        wroteNewSubscriber = await writeConfig()
+    }
+
+    return wroteNewSubscriber
+}
+
+const transformWBNBTransaction = async (...args)=>{
+    let bnbIn,tokenOut,bigBuyWBNBThreshold= bigBuyThreshold
+    let transaction = {}
+
+    transaction.bnbPrice = await getBnbPrice()
+
+    transaction.txHash = args[6].transactionHash
+
+    transaction.buyer = args[5]
+
+    if (tokenPairIndex === '0') {
+        bnbIn =  parseInt(args[2].toString())
+        tokenOut =  parseInt(args[3].toString())
+    } else {
+        bnbIn =  parseInt(args[1].toString())
+        tokenOut =  parseInt(args[4].toString())
+    }
+
+    transaction.tokenOut = tokenOut/(10**tokenDecimals)
+    transaction.bnbIn = bnbIn/(10**18)
+    transaction.valueUSD = transaction.bnbPrice *transaction.bnbIn
+    transaction.datetime = getDate()
+    transaction.balance = await getBalance(transaction.buyer)
+    transaction.newBuyer = transaction.balance <= transaction.tokenOut
+    transaction.bigBuyer = transaction.bnbIn>bigBuyWBNBThreshold
+    transaction.tokenPrice = ( transaction.valueUSD / transaction.tokenOut ).toFixed(8)
+    transaction.mcap = ( transaction.tokenPrice * tokenTotalSupply ).toFixed(2)
+    return transaction
+}
+
+const reportWBNBSwap = async (...args) => {
+    return await sendMessage(await transformWBNBTransaction(...args))
+}
+
+const reportBUSDSwap = async (...args) => {
+    //return await sendMessage(await transformBUSDTransaction(...args))
 }
 
 const listen = async()=>{
+
+    if(listening)return
+
+    //let pools = getConfigPools()
+
     listening = true
     tokenDecimals = await tokenContract.decimals()
     tokenTotalSupply = (await tokenContract.totalSupply())/(10**tokenDecimals)
 
     pairContract.on('Swap',async (...args) => {
-        if(
-            (tokenPairIndex==='0' && args[1].toString()==='0')
-            ||
-            (tokenPairIndex==='1' && args[2].toString()==='0')
-        ){
-            let bnbIn,tokenOut
-            let transaction = {}
 
-            transaction.bnbPrice = await getBnbPrice();
+        const qualifiedSwap = ()=>{
+            return  (tokenPairIndex==='0' && args[1].toString()==='0')
+                || (tokenPairIndex==='1' && args[2].toString()==='0')
+        }
 
-            transaction.txHash = args[6].transactionHash
-
-            transaction.buyer = args[5]
-
-            if (tokenPairIndex === '0') {
-                bnbIn =  parseInt(args[2].toString())
-                tokenOut =  parseInt(args[3].toString())
-            } else {
-                bnbIn =  parseInt(args[1].toString())
-                tokenOut =  parseInt(args[4].toString())
-            }
-
-            transaction.tokenOut = tokenOut/(10**tokenDecimals)
-            transaction.bnbIn = bnbIn/(10**18)
-            transaction.valueUSD = transaction.bnbPrice *transaction.bnbIn
-            transaction.datetime = getDate()
-            transaction.balance = await getBalance(transaction.buyer)
-            transaction.newBuyer = transaction.balance <= transaction.tokenOut
-            transaction.tokenPrice = ( transaction.valueUSD / transaction.tokenOut ).toFixed(8);
-            transaction.mcap = ( transaction.tokenPrice * tokenTotalSupply ).toFixed(2);
-
-            //let animation= getAnimation(transaction.bnbIn>bigBuyThreshold)
-
-            await sendMessage(transaction)
-            //await sendMessage(transaction).then(()=>sendAnimation(animation))
+        if(qualifiedSwap()){
+            await reportWBNBSwap(...args)
         }
     })
 }
@@ -213,13 +282,15 @@ const mute = ()=>{
 }
 
 slimBot.on('/start', async (msg) => {
+    let msgChatId = msg.chat.id
     let user = await slimBot.getChatMember(msg.chat.id, msg.from.id)
     if(user.status === "creator" || user.status === "admin"){
-        slimBotStartMessage = msg
-        msg.reply.text( 'updating has started\n' + '/stop to stop receiving updates\n' )
-        if(!listening){
+        let wroteNewSubscriber = await loadSubscriptionsWithUpdate(msgChatId)
+
+        msg.reply.text( `updating has started\nwrote new subscriber:${wroteNewSubscriber}\n` + '/stop to stop receiving updates\n' )
+
+        if(!listening)
             await listen()
-        }
     }
 })
 
@@ -231,12 +302,9 @@ slimBot.on('/stop',  (msg) => {
 })
 
 const start = async ()=>{
-    slimBotStartMessage = {chat:{id:defaultChatId}}
-    await listen()
+    if(loadConfig)
+        await listen()
     slimBot.start()
 }
 
 start()
-
-
-
