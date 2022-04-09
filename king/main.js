@@ -239,18 +239,18 @@ const transformWBNBTransaction = async (...args)=>{
     transaction.datetime = getDate()
     transaction.balance = await getBalance(transaction.buyer)
     transaction.newBuyer = transaction.balance <= transaction.tokenOut
-    transaction.bigBuyer = transaction.busdIn>bigBuyWBNBThreshold
+    transaction.bigBuyer = transaction.bnbIn>bigBuyWBNBThreshold
     transaction.tokenPrice = ( transaction.valueUSD / transaction.tokenOut ).toFixed(8)
     transaction.mcap = ( transaction.tokenPrice * tokenTotalSupply ).toFixed(2)
-
-    //let animation= getAnimation(transaction.bnbIn>bigBuyThreshold)
-
     return transaction
 }
 
-const reportSwap = async (...args) => {
-    let result = await sendMessage(await transformWBNBTransaction(...args))
-    console.log(result)
+const reportWBNBSwap = async (...args) => {
+    return await sendMessage(await transformWBNBTransaction(...args))
+}
+
+const reportBUSDSwap = async (...args) => {
+    //return await sendMessage(await transformBUSDTransaction(...args))
 }
 
 const listen = async()=>{
@@ -271,7 +271,7 @@ const listen = async()=>{
         }
 
         if(qualifiedSwap()){
-            await reportSwap(...args)
+            await reportWBNBSwap(...args)
         }
     })
 }

@@ -81,6 +81,7 @@ const formatNum = (str) => {
 }
 
 const getMessageFromTx = (tx) => {
+
     let showBalance = tx.balance>0
 
     let output =

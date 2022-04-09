@@ -108,6 +108,7 @@ const getSubscribers = async( )=>{
 }
 
 const sendMessage=async (transaction) => {
+
     let responses=[]
     let message=getMessageFromTx(transaction);
     let animation= getAnimation(transaction.bigBuyer)
