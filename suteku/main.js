@@ -87,6 +87,7 @@ const formatNum = (str) => {
 const getMessageFromTx = (tx) => {
 
     let showBalance = tx.balance>0
+
     let spent =  tx.bnbIn !== undefined
         ?
             `${tx.bnbIn.toString()}($${formatNum(tx.valueUSD)})`

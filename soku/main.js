@@ -276,7 +276,7 @@ const transformBUSDTransaction = async (...args)=>{
 }
 
 const reportBUSDSwap = async (...args) => {
-return await sendMessage(await transformBUSDTransaction(...args))
+    return await sendMessage(await transformBUSDTransaction(...args))
 }
 
 const listen = async()=>{
@@ -292,7 +292,7 @@ const listen = async()=>{
     pairWBNBContract.on('Swap',async (...args) => {
 
         const qualifiedSwap = ()=>{
-            return (tokenPairWBNBIndex==='0' && args[1].toString()==='0')
+            return  (tokenPairWBNBIndex==='0' && args[1].toString()==='0')
                 || (tokenPairWBNBIndex==='1' && args[2].toString()==='0')
         }
 
@@ -306,6 +306,7 @@ const listen = async()=>{
             return  (tokenPairBUSDIndex==='0' && args[1].toString()==='0')
                 || (tokenPairBUSDIndex==='1' && args[2].toString()==='0')
         }
+
         if(qualifiedSwap()){
             await reportBUSDSwap(...args)
         }
