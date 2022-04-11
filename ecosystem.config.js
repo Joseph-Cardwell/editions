@@ -1,18 +1,6 @@
 module.exports = {
     apps : [
         {
-            name : "dev9",
-            script : "main.js",
-            cwd: '/home/sokuswap/editions/dev9',
-            node_args: '-r dotenv/config main.js dotenv_config_path=/home/sokuswap/editions/dev9/.env dotenv_config_debug=true'
-        },
-        {
-            name: "dual",
-            script: "main.js",
-            cwd: '/home/sokuswap/editions/dual',
-            node_args: '-r dotenv/config main.js dotenv_config_path=/home/sokuswap/editions/dual/.env dotenv_config_debug=true'
-        },
-        {
             name:"centcex",
             script: "main.js",
             cwd:'/home/sokuswap/editions/centcex',
@@ -112,6 +100,12 @@ module.exports = {
             script: "main.js",
             cwd:'/home/sokuswap/editions/suteku',
             node_args: '-r dotenv/config main.js dotenv_config_path=/home/sokuswap/editions/suteku/.env dotenv_config_debug=true'
+        },
+        {
+            name:"soku_eth",
+            script: "main.js",
+            cwd:'/home/sokuswap/editions/soku_eth',
+            node_args: '-r dotenv/config main.js dotenv_config_path=/home/sokuswap/editions/soku_eth/.env dotenv_config_debug=true'
         },
 
     ]
