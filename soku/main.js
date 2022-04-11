@@ -337,12 +337,8 @@ slimBot.on('/start', async (msg) => {
     let msgChatId = msg.chat.id
     let user = await slimBot.getChatMember(msg.chat.id, msg.from.id)
     if(user.status === "creator" || user.status === "admin"){
-        let wroteNewSubscriber = await loadSubscriptionsWithUpdate(msgChatId)
-
-        msg.reply.text( `updating has started\nwrote new subscriber:${wroteNewSubscriber}\n` + '/stop to stop receiving updates\n' )
-
-        if(!listening)
-            await listen()
+        let newSubscriber = await addSubscriber(msgChatId)
+        msg.reply.text( `updating has started\n` + '/stop to stop receiving updates\n' )
     }
 })
 
