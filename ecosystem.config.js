@@ -102,10 +102,10 @@ module.exports = {
             node_args: '-r dotenv/config main.js dotenv_config_path=/home/sokuswap/editions/suteku/.env dotenv_config_debug=true'
         },
         {
-            name:"soku_eth",
+            name:"eth_soku",
             script: "main.js",
-            cwd:'/home/sokuswap/editions/soku_eth',
-            node_args: '-r dotenv/config main.js dotenv_config_path=/home/sokuswap/editions/soku_eth/.env dotenv_config_debug=true'
+            cwd:'/home/sokuswap/editions/eth_soku',
+            node_args: '-r dotenv/config main.js dotenv_config_path=/home/sokuswap/editions/eth_soku/.env dotenv_config_debug=true'
         },
 
     ]
