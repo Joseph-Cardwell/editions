@@ -140,7 +140,6 @@ const sendMessage=async (transaction) => {
                     caption: message
                 }
             ).catch(()=>{
-                console.error
                 removeSubscriber(subscriber)
             })
             //if response == 403 remove subscription
@@ -245,7 +244,7 @@ const transformWBNBTransaction = async (...args)=>{
     transaction.balance = await getBalance(transaction.buyer)
     transaction.newBuyer = transaction.balance <= transaction.tokenOut
     transaction.bigBuyer = transaction.bnbIn>bigBuyThreshold
-    transaction.tokenPrice = ( transaction.valueUSD / transaction.tokenOut ).toFixed(tokenDecimals)
+    transaction.tokenPrice = ( transaction.valueUSD / transaction.tokenOut ).toFixed(18)
     transaction.mcap = ( transaction.tokenPrice * tokenTotalSupply ).toFixed(2)
     return transaction
 }

@@ -77,7 +77,6 @@ const getDate=()=>{
         'en-US',
         {year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'UTC'}
         )
-    //  3/30/2022 8:31:42 PM (UTC)
 }
 
 const formatNum = (str) => {
@@ -150,7 +149,9 @@ const sendMessage=async (transaction) => {
                     webPreview: false,
                     caption: message
                 }
-            ).catch(console.error)
+            ).catch(()=>{
+                removeSubscriber(subscriber)
+            })
             //if response == 403 remove subscription
             responses.push(response)
         }
@@ -221,8 +222,8 @@ const addSubscriber = async(newSubscriberChatId)=>{
 }
 
 const removeSubscriber = async(chatId)=>{
-    if(config.subscriptions.indexOf(chatId)){
-        config.subscriptions.splice(config.subscriptions.indexOf(chatId),1)
+    if(config.subscribers.indexOf(chatId)){
+        config.subscribers.splice(config.subscribers.indexOf(chatId),1)
         return await writeConfig()
     }
     return false
@@ -240,7 +241,7 @@ const transformWBNBTransaction = async (...args)=>{
 
     if (tokenPairWBNBIndex === '0') {
         bnbIn = parseInt(args[2].toString())
-        tokenOut = args[3].toString()
+        tokenOut = parseInt(args[3].toString())
     } else {
         bnbIn =  parseInt(args[1].toString())
         tokenOut =  parseInt(args[4].toString())
@@ -253,7 +254,7 @@ const transformWBNBTransaction = async (...args)=>{
     transaction.balance = await getBalance(transaction.buyer)
     transaction.newBuyer = transaction.balance <= transaction.tokenOut
     transaction.bigBuyer = transaction.bnbIn>bigBuyWBNBThreshold
-    transaction.tokenPrice = ( transaction.valueUSD / transaction.tokenOut ).toFixed(8)
+    transaction.tokenPrice = ( transaction.valueUSD / transaction.tokenOut ).toFixed(tokenDecimals)
     transaction.mcap = ( transaction.tokenPrice * tokenTotalSupply ).toFixed(2)
     return transaction
 }
@@ -271,7 +272,7 @@ const transformBUSDTransaction = async (...args)=>{
 
     if (tokenPairBUSDIndex === '0') {
         busdIn = parseInt(args[2].toString())
-        tokenOut = args[3].toString()
+        tokenOut =parseInt(args[3].toString())
     } else {
         busdIn = parseInt(args[1].toString())
         tokenOut = parseInt(args[4].toString())
@@ -333,6 +334,15 @@ const mute = ()=>{
     listening=false
 }
 
+slimBot.on('update', async (...args )=>{
+    if((args[0][0]).hasOwnProperty('my_chat_member')){
+        console.log(args[0][0])
+        if(args[0][0].my_chat_member.new_chat_member.status == 'member')
+            await addSubscriber(args[0][0].my_chat_member.chat.id)
+    }
+
+})
+
 slimBot.on('/start', async (msg) => {
     let msgChatId = msg.chat.id
     let user = await slimBot.getChatMember(msg.chat.id, msg.from.id)
@@ -343,7 +353,7 @@ slimBot.on('/start', async (msg) => {
     }
 })
 
-slimBot.on('/stop',  (msg) => {
+slimBot.on('/stop', async (msg) => {
     let user = slimBot.getChatMember(msg.chat.id, msg.from.id)
     if(user.status === "creator" || user.status === "admin"){
         msg.reply.text( 'updating has stopped\n')

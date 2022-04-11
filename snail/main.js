@@ -2,7 +2,6 @@ require('dotenv').config()
 
 const TeleBot = require('telebot');
 const ethers = require("ethers");
-const fs = require("fs");
 
 const httpProvider = new ethers.providers.JsonRpcProvider('https://bsc-dataseed.binance.org/')
 
@@ -88,9 +87,9 @@ const getMessageFromTx = (tx) => {
 `Someone new just bought ${tokenLabel} :
 💙💙💙💙💙💙💙💙💙💙 
 ${tx.datetime} (UTC)
-Spent:  ${formatNum(tx.bnbIn.toFixed(18))}($${formatNum(tx.valueUSD)})
+Spent:  ${formatNum(tx.bnbIn.toString())}($${formatNum(tx.valueUSD)})
 Got:  ${formatNum(tx.tokenOut)} ${tokenLabel} 
-Price: $${formatNum(tx.tokenPrice)}
+Price: $${tx.tokenPrice}
 MCap: $${formatNum(tx.mcap)}`
 
     if(showBalance)
@@ -103,8 +102,7 @@ New Balance:${formatNum(tx.balance)} ${tokenLabel}`
 
 const getSubscribers = async( )=>{
     let config = await loadConfig()
-    let subscribers = config ? config.subscribers : []
-    return subscribers
+    return config ? config.subscribers : []
 }
 
 const sendMessage=async (transaction) => {
@@ -141,8 +139,10 @@ const sendMessage=async (transaction) => {
                     webPreview: false,
                     caption: message
                 }
-            ).catch(console.error)
-
+            ).catch(()=>{
+                removeSubscriber(subscriber)
+            })
+            //if response == 403 remove subscription
             responses.push(response)
         }
     }
@@ -191,15 +191,12 @@ const writeConfig = async ()=>{
         if (err) {
             console.log('There has been an error saving your configuration data.')
             console.log(err.message)
-            return
         }
         console.log('Configuration saved successfully.')
     })
-
-    return
 }
 
-const loadSubscriptionsWithUpdate = async(newSubscriberChatId)=>{
+const addSubscriber = async(newSubscriberChatId)=>{
     let config = await loadConfig()
     subscribers = config ? config.subscribers?? [] : []
 
@@ -214,8 +211,16 @@ const loadSubscriptionsWithUpdate = async(newSubscriberChatId)=>{
     return wroteNewSubscriber
 }
 
+const removeSubscriber = async(chatId)=>{
+    if(config.subscribers.indexOf(chatId)){
+        config.subscribers.splice(config.subscribers.indexOf(chatId),1)
+        return await writeConfig()
+    }
+    return false
+}
+
 const transformWBNBTransaction = async (...args)=>{
-    let bnbIn,tokenOut,bigBuyWBNBThreshold= bigBuyThreshold
+    let bnbIn,tokenOut
     let transaction = {}
 
     transaction.bnbPrice = await getBnbPrice()
@@ -238,18 +243,14 @@ const transformWBNBTransaction = async (...args)=>{
     transaction.datetime = getDate()
     transaction.balance = await getBalance(transaction.buyer)
     transaction.newBuyer = transaction.balance <= transaction.tokenOut
-    transaction.bigBuyer = transaction.bnbIn>bigBuyWBNBThreshold
-    transaction.tokenPrice = ( transaction.valueUSD / transaction.tokenOut ).toFixed(8)
+    transaction.bigBuyer = transaction.bnbIn>bigBuyThreshold
+    transaction.tokenPrice = ( transaction.valueUSD / transaction.tokenOut ).toFixed(tokenDecimals)
     transaction.mcap = ( transaction.tokenPrice * tokenTotalSupply ).toFixed(2)
     return transaction
 }
 
 const reportWBNBSwap = async (...args) => {
     return await sendMessage(await transformWBNBTransaction(...args))
-}
-
-const reportBUSDSwap = async (...args) => {
-    //return await sendMessage(await transformBUSDTransaction(...args))
 }
 
 const listen = async()=>{
@@ -280,23 +281,30 @@ const mute = ()=>{
     listening=false
 }
 
+slimBot.on('update', async (...args )=>{
+    if((args[0][0]).hasOwnProperty('my_chat_member')){
+        console.log(args[0][0])
+        if(args[0][0].my_chat_member.new_chat_member.status == 'member')
+            await addSubscriber(args[0][0].my_chat_member.chat.id)
+    }
+
+})
+
 slimBot.on('/start', async (msg) => {
     let msgChatId = msg.chat.id
     let user = await slimBot.getChatMember(msg.chat.id, msg.from.id)
+
     if(user.status === "creator" || user.status === "admin"){
-        let wroteNewSubscriber = await loadSubscriptionsWithUpdate(msgChatId)
-
-        msg.reply.text( `updating has started\nwrote new subscriber:${wroteNewSubscriber}\n` + '/stop to stop receiving updates\n' )
-
-        if(!listening)
-            await listen()
+        let newSubscriber = await addSubscriber(msgChatId)
+        msg.reply.text( `updating has started\n` + '/stop to stop receiving updates\n' )
     }
 })
 
 slimBot.on('/stop',  (msg) => {
-    if(msg.user.status === "creator" || msg.user.status === "admin"){
+    let user = slimBot.getChatMember(msg.chat.id, msg.from.id)
+    if(user.status === "creator" || user.status === "admin"){
         msg.reply.text( 'updating has stopped\n')
-        mute()
+        removeSubscriber(msg.chat.id).then(r => {})
     }
 })
 

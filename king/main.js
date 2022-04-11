@@ -140,7 +140,6 @@ const sendMessage=async (transaction) => {
                     caption: message
                 }
             ).catch(()=>{
-                console.error
                 removeSubscriber(subscriber)
             })
             //if response == 403 remove subscription
@@ -245,17 +244,13 @@ const transformWBNBTransaction = async (...args)=>{
     transaction.balance = await getBalance(transaction.buyer)
     transaction.newBuyer = transaction.balance <= transaction.tokenOut
     transaction.bigBuyer = transaction.bnbIn>bigBuyThreshold
-    transaction.tokenPrice = ( transaction.valueUSD / transaction.tokenOut ).toFixed(tokenDecimals)
+    transaction.tokenPrice = ( transaction.valueUSD / transaction.tokenOut ).toFixed(18)
     transaction.mcap = ( transaction.tokenPrice * tokenTotalSupply ).toFixed(2)
     return transaction
 }
 
 const reportWBNBSwap = async (...args) => {
     return await sendMessage(await transformWBNBTransaction(...args))
-}
-
-const reportBUSDSwap = async (...args) => {
-    //return await sendMessage(await transformBUSDTransaction(...args))
 }
 
 const listen = async()=>{
@@ -289,7 +284,7 @@ const mute = ()=>{
 slimBot.on('update', async (...args )=>{
     if((args[0][0]).hasOwnProperty('my_chat_member')){
         console.log(args[0][0])
-        if(args[0][0].my_chat_member.new_chat_member.status == 'member')
+        if(args[0][0].my_chat_member.new_chat_member.status === 'member')
             await addSubscriber(args[0][0].my_chat_member.chat.id)
     }
 
@@ -300,8 +295,8 @@ slimBot.on('/start', async (msg) => {
     let user = await slimBot.getChatMember(msg.chat.id, msg.from.id)
 
     if(user.status === "creator" || user.status === "admin"){
-        let wroteNewSubscriber = await addSubscriber(msgChatId)
-        msg.reply.text( `updating has started\nwrote new subscriber:${wroteNewSubscriber}\n` + '/stop to stop receiving updates\n' )
+        let newSubscriber = await addSubscriber(msgChatId)
+        msg.reply.text( `updating has started\n` + '/stop to stop receiving updates\n' )
     }
 })
 
