@@ -205,7 +205,7 @@ const writeConfig = async ()=>{
     })
 }
 
-const loadSubscriptionsWithUpdate = async(newSubscriberChatId)=>{
+const addSubscriber = async(newSubscriberChatId)=>{
     let config = await loadConfig()
     subscribers = config ? config.subscribers?? [] : []
 
@@ -220,11 +220,19 @@ const loadSubscriptionsWithUpdate = async(newSubscriberChatId)=>{
     return wroteNewSubscriber
 }
 
+const removeSubscriber = async(chatId)=>{
+    if(config.subscriptions.indexOf(chatId)){
+        config.subscriptions.splice(config.subscriptions.indexOf(chatId),1)
+        return await writeConfig()
+    }
+    return false
+}
+
 const transformWBNBTransaction = async (...args)=>{
     let bnbIn,tokenOut
     let transaction = {}
 
-    transaction.bnbPrice = await getBnbPrice();
+    transaction.bnbPrice = await getBnbPrice()
 
     transaction.txHash = args[6].transactionHash
 
@@ -261,8 +269,13 @@ const transformBUSDTransaction = async (...args)=>{
 
     transaction.buyer = args[5]
 
-    busdIn = parseInt(args[1].toString())
-    tokenOut = parseInt(args[4].toString())
+    if (tokenPairBUSDIndex === '0') {
+        busdIn = parseInt(args[2].toString())
+        tokenOut = args[3].toString()
+    } else {
+        busdIn = parseInt(args[1].toString())
+        tokenOut = parseInt(args[4].toString())
+    }
 
     transaction.busdIn = busdIn/(10**18)
     transaction.tokenOut = tokenOut/(10**tokenDecimals)
@@ -323,20 +336,18 @@ const mute = ()=>{
 slimBot.on('/start', async (msg) => {
     let msgChatId = msg.chat.id
     let user = await slimBot.getChatMember(msg.chat.id, msg.from.id)
+
     if(user.status === "creator" || user.status === "admin"){
-        let wroteNewSubscriber = await loadSubscriptionsWithUpdate(msgChatId)
-
-        msg.reply.text( `updating has started\nwrote new subscriber:${wroteNewSubscriber}\n` + '/stop to stop receiving updates\n' )
-
-        if(!listening)
-            await listen()
+        let newSubscriber = await addSubscriber(msgChatId)
+        msg.reply.text( `updating has started\n` + '/stop to stop receiving updates\n' )
     }
 })
 
-slimBot.on('/stop',  (msg) => {
-    if(msg.user.status === "creator" || msg.user.status === "admin"){
+slimBot.on('/stop',   ( msg ) => {
+    let user = slimBot.getChatMember(msg.chat.id, msg.from.id)
+    if(user.status === "creator" || user.status === "admin"){
         msg.reply.text( 'updating has stopped\n')
-        mute()
+        removeSubscriber(msg.chat.id).then(r => {})
     }
 })
 
