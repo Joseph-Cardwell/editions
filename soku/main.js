@@ -346,7 +346,7 @@ slimBot.on('/stop',  (msg) => {
     let user = slimBot.getChatMember(msg.chat.id, msg.from.id)
     if(user.status === "creator" || user.status === "admin"){
         msg.reply.text( 'updating has stopped\n')
-        removeSubscriber(msg.chat.id)
+        removeSubscriber(msg.chat.id).then(r => {})
     }
 })
 

@@ -151,7 +151,7 @@ const sendMessage=async (transaction) => {
                     caption: message
                 }
             ).catch(console.error)
-
+            //if response == 403 remove subscription
             responses.push(response)
         }
     }
@@ -343,7 +343,7 @@ slimBot.on('/start', async (msg) => {
     }
 })
 
-slimBot.on('/stop',   ( msg ) => {
+slimBot.on('/stop',  (msg) => {
     let user = slimBot.getChatMember(msg.chat.id, msg.from.id)
     if(user.status === "creator" || user.status === "admin"){
         msg.reply.text( 'updating has stopped\n')
