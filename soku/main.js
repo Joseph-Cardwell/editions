@@ -87,6 +87,7 @@ const formatNum = (str) => {
 const getMessageFromTx = (tx) => {
 
     let showBalance = tx.balance>0
+
     let spent =  tx.bnbIn !== undefined
         ?
             `${tx.bnbIn.toString()}($${formatNum(tx.valueUSD)})`
@@ -150,7 +151,7 @@ const sendMessage=async (transaction) => {
                     caption: message
                 }
             ).catch(console.error)
-
+            //if response == 403 remove subscription
             responses.push(response)
         }
     }
@@ -204,7 +205,7 @@ const writeConfig = async ()=>{
     })
 }
 
-const loadSubscriptionsWithUpdate = async(newSubscriberChatId)=>{
+const addSubscriber = async(newSubscriberChatId)=>{
     let config = await loadConfig()
     subscribers = config ? config.subscribers?? [] : []
 
@@ -219,11 +220,19 @@ const loadSubscriptionsWithUpdate = async(newSubscriberChatId)=>{
     return wroteNewSubscriber
 }
 
+const removeSubscriber = async(chatId)=>{
+    if(config.subscriptions.indexOf(chatId)){
+        config.subscriptions.splice(config.subscriptions.indexOf(chatId),1)
+        return await writeConfig()
+    }
+    return false
+}
+
 const transformWBNBTransaction = async (...args)=>{
     let bnbIn,tokenOut
     let transaction = {}
 
-    transaction.bnbPrice = await getBnbPrice();
+    transaction.bnbPrice = await getBnbPrice()
 
     transaction.txHash = args[6].transactionHash
 
@@ -260,8 +269,13 @@ const transformBUSDTransaction = async (...args)=>{
 
     transaction.buyer = args[5]
 
-    busdIn = parseInt(args[2].toString())
-    tokenOut = parseInt(args[3].toString())
+    if (tokenPairBUSDIndex === '0') {
+        busdIn = parseInt(args[2].toString())
+        tokenOut = args[3].toString()
+    } else {
+        busdIn = parseInt(args[1].toString())
+        tokenOut = parseInt(args[4].toString())
+    }
 
     transaction.busdIn = busdIn/(10**18)
     transaction.tokenOut = tokenOut/(10**tokenDecimals)
@@ -333,9 +347,10 @@ slimBot.on('/start', async (msg) => {
 })
 
 slimBot.on('/stop',  (msg) => {
-    if(msg.user.status === "creator" || msg.user.status === "admin"){
+    let user = slimBot.getChatMember(msg.chat.id, msg.from.id)
+    if(user.status === "creator" || user.status === "admin"){
         msg.reply.text( 'updating has stopped\n')
-        mute()
+        removeSubscriber(msg.chat.id)
     }
 })
 
